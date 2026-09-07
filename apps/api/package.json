@@ -31,7 +31,7 @@
     "@nestjs/schedule": "^4.0.0",
     "@nestjs/swagger": "^7.2.0",
     "@nestjs/throttler": "^5.1.1",
-    "argon2": "^0.31.2",
+    "argon2": "^0.45.1",
     "axios": "^1.6.5",
     "bull": "^4.12.2",
     "class-transformer": "^0.5.1",
