@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://anchor.app/docs
+    about: Check our documentation for guides and tutorials
+  - name: Discord Community
+    url: https://discord.gg/anchor
+    about: Join our Discord community for discussions and support
+  - name: Email Support
+    url: mailto:support@anchor.app
+    about: Contact our support team directly

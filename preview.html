@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anchor — AI Memory Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .fade-in { animation: fadeIn .4s ease-out; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .card-hover { transition: transform .15s, box-shadow .15s; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .sidebar-link.active { background: rgba(99,102,241,.12); color: #6366f1; font-weight: 600; }
+    .kanban-col { min-height: 420px; }
+    .tab-active { border-bottom: 2px solid #6366f1; color: #6366f1; font-weight: 600; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full z-30 transition-transform -translate-x-full lg:translate-x-0" >
+    <div class="p-5 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-bold text-lg">A</div>
+        <div>
+          <h1 class="text-lg font-bold text-gray-900 leading-tight">Anchor</h1>
+          <p class="text-[11px] text-gray-400 leading-tight">AI Memory Assistant</p>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      <a onclick="showPage('dashboard')" class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer hover:bg-gray-50 transition">
+        <span>📊</span> Dashboard
+      </a>
+      <a onclick="showPage('memories')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer hover:bg-gray-50 transition">
+        <span>🧠</span> Memories
+      </a>
+      <a onclick="showPage('tasks')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer hover:bg-gray-50 transition">
+        <span>✅</span> Tasks
+      </a>
+      <a onclick="showPage('calendar')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer hover:bg-gray-50 transition">
+        <span>📅</span> Calendar
+      </a>
+      <a onclick="showPage('channels')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer hover:bg-gray-50 transition">
+        <span>💬</span> Channels
+      </a>
+      <a onclick="showPage('search')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer hover:bg-gray-50 transition">
+        <span>🔍</span> Search
+      </a>
+      <a onclick="showPage('settings')" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer hover:bg-gray-50 transition">
+        <span>⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="p-4 border-t border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold text-sm">U</div>
+        <div>
+          <p class="text-sm font-medium text-gray-900">User</p>
+          <p class="text-xs text-gray-400">Pro Plan</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="flex-1 lg:ml-64">
+
+    <!-- Top Bar -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-gray-100">☰</button>
+        <h2 id="pageTitle" class="text-xl font-bold text-gray-900">Dashboard</h2>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="relative hidden md:block">
+          <input type="text" placeholder="Search memories, tasks..." class="w-72 pl-10 pr-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+        </div>
+        <button class="relative p-2 rounded-lg hover:bg-gray-100">
+          🔔
+          <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-semibold text-sm">U</div>
+      </div>
+    </header>
+
+    <!-- ===== PAGES ===== -->
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="p-6 fade-in">
+      <!-- Stats -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div class="bg-white rounded-xl border border-gray-200 p-5 card-hover">
+          <div class="flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-2xl">🧠</div>
+            <div><p class="text-xs text-gray-500 font-medium">Total Memories</p><p class="text-2xl font-bold text-gray-900">1,247</p></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-5 card-hover">
+          <div class="flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl bg-green-50 flex items-center justify-center text-2xl">✅</div>
+            <div><p class="text-xs text-gray-500 font-medium">Active Tasks</p><p class="text-2xl font-bold text-gray-900">38</p></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-5 card-hover">
+          <div class="flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center text-2xl">📅</div>
+            <div><p class="text-xs text-gray-500 font-medium">Calendar Events</p><p class="text-2xl font-bold text-gray-900">12</p></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-5 card-hover">
+          <div class="flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center text-2xl">💬</div>
+            <div><p class="text-xs text-gray-500 font-medium">Active Channels</p><p class="text-2xl font-bold text-gray-900">3</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent Activity -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="font-bold text-gray-900 mb-4">Recent Activity</h3>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition">
+              <div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-lg flex-shrink-0">📝</div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900">Meeting notes with Sarah</p>
+                <p class="text-xs text-gray-500 mt-0.5">Captured via WhatsApp · 12 min ago</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition">
+              <div class="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-lg flex-shrink-0">✅</div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900">Task created: Follow up with investor</p>
+                <p class="text-xs text-gray-500 mt-0.5">Auto-generated from memory · 45 min ago</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition">
+              <div class="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-lg flex-shrink-0">📅</div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900">Event synced: Product review @ 3 PM</p>
+                <p class="text-xs text-gray-500 mt-0.5">Google Calendar · 1 hour ago</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition">
+              <div class="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center text-lg flex-shrink-0">🎤</div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900">Voice note transcribed</p>
+                <p class="text-xs text-gray-500 mt-0.5">Telegram · 2 hours ago</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition">
+              <div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-lg flex-shrink-0">🖼️</div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900">Whiteboard photo analyzed</p>
+                <p class="text-xs text-gray-500 mt-0.5">Email attachment · 3 hours ago</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition">
+              <div class="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-lg flex-shrink-0">✅</div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900">Task completed: Send proposal</p>
+                <p class="text-xs text-gray-500 mt-0.5">Completed · 5 hours ago</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="space-y-6">
+          <!-- Quick Actions -->
+          <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 class="font-bold text-gray-900 mb-4">Quick Actions</h3>
+            <div class="space-y-3">
+              <button class="w-full py-2.5 px-4 bg-brand-500 text-white rounded-lg font-medium text-sm hover:bg-brand-600 transition flex items-center justify-center gap-2">
+                📸 Capture Memory
+              </button>
+              <button class="w-full py-2.5 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition flex items-center justify-center gap-2">
+                ➕ New Task
+              </button>
+              <button class="w-full py-2.5 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-200 transition flex items-center justify-center gap-2">
+                🎤 Voice Note
+              </button>
+            </div>
+          </div>
+
+          <!-- Channels Status -->
+          <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 class="font-bold text-gray-900 mb-4">Channels</h3>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div class="flex items-center gap-2"><span>📱</span><span class="text-sm font-medium text-green-800">WhatsApp</span></div>
+                <span class="w-2 h-2 bg-green-500 rounded-full pulse"></span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div class="flex items-center gap-2"><span>✈️</span><span class="text-sm font-medium text-blue-800">Telegram</span></div>
+                <span class="w-2 h-2 bg-blue-500 rounded-full pulse"></span>
+              </div>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-2"><span>📧</span><span class="text-sm font-medium text-gray-600">Email</span></div>
+                <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Status -->
+          <div class="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 class="font-bold text-gray-900 mb-4">System</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">API</span><span class="text-green-600 font-medium">● Online</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">AI Service</span><span class="text-green-600 font-medium">● Online</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Database</span><span class="text-green-600 font-medium">● Online</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Redis</span><span class="text-green-600 font-medium">● Online</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Last Sync</span><span class="text-gray-700">2 min ago</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMORIES -->
+    <div id="page-memories" class="p-6 hidden fade-in">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div class="flex items-center gap-3 flex-1">
+          <input type="text" placeholder="Search memories..." class="flex-1 max-w-md pl-4 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          <select class="px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-700">
+            <option>All Types</option><option>Text</option><option>Images</option><option>Voice</option><option>Video</option>
+          </select>
+        </div>
+        <button class="px-4 py-2.5 bg-brand-500 text-white rounded-lg font-medium text-sm hover:bg-brand-600 transition whitespace-nowrap">+ New Memory</button>
+      </div>
+
+      <div class="space-y-3" id="memoryList"></div>
+    </div>
+
+    <!-- TASKS -->
+    <div id="page-tasks" class="p-6 hidden fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex gap-2">
+          <button class="tab-active px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-900">All</button>
+          <button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-900">Pending</button>
+          <button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-900">In Progress</button>
+          <button class="px-4 py-2 text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-900">Completed</button>
+        </div>
+        <button class="px-4 py-2.5 bg-brand-500 text-white rounded-lg font-medium text-sm hover:bg-brand-600 transition">+ New Task</button>
+      </div>
+
+      <div class="flex gap-5 overflow-x-auto pb-4" id="kanbanBoard"></div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div id="page-calendar" class="p-6 hidden fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <button onclick="changeCalMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg transition">←</button>
+          <h3 id="calMonth" class="text-lg font-bold text-gray-900 min-w-[180px] text-center"></h3>
+          <button onclick="changeCalMonth(1)" class="p-2 hover:bg-gray-100 rounded-lg transition">→</button>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">🔄 Sync</button>
+          <button class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600 transition">+ Event</button>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <div class="grid grid-cols-7 gap-px" id="calendarGrid"></div>
+      </div>
+    </div>
+
+    <!-- CHANNELS -->
+    <div id="page-channels" class="p-6 hidden fade-in">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl border border-gray-200 p-6 card-hover">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center text-3xl">📱</div>
+            <div>
+              <h3 class="font-bold text-gray-900">WhatsApp</h3>
+              <p class="text-sm text-green-600 font-medium">Connected</p>
+            </div>
+          </div>
+          <p class="text-sm text-gray-600 mb-4">Send messages and voice notes to your Anchor bot on WhatsApp to automatically capture memories.</p>
+          <div class="flex gap-2">
+            <button class="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition">Configure</button>
+            <button class="py-2 px-4 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">Test</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-6 card-hover">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center text-3xl">✈️</div>
+            <div>
+              <h3 class="font-bold text-gray-900">Telegram</h3>
+              <p class="text-sm text-blue-600 font-medium">Connected</p>
+            </div>
+          </div>
+          <p class="text-sm text-gray-600 mb-4">Forward messages or send directly to your Telegram bot. Supports text, images, voice, and video.</p>
+          <div class="flex gap-2">
+            <button class="flex-1 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition">Configure</button>
+            <button class="py-2 px-4 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">Test</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-6 card-hover">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-14 h-14 rounded-xl bg-gray-50 flex items-center justify-center text-3xl">📧</div>
+            <div>
+              <h3 class="font-bold text-gray-900">Email</h3>
+              <p class="text-sm text-gray-500 font-medium">Not Connected</p>
+            </div>
+          </div>
+          <p class="text-sm text-gray-600 mb-4">Forward emails or use your dedicated Anchor email address. Attachments and images are supported.</p>
+          <div class="flex gap-2">
+            <button class="flex-1 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-900 transition">Connect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div id="page-search" class="p-6 hidden fade-in">
+      <div class="max-w-3xl mx-auto">
+        <div class="mb-8">
+          <input type="text" placeholder="Search across all your memories, tasks, and events..." class="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 bg-white text-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
+          <div class="flex gap-2 mt-3">
+            <span class="px-3 py-1 bg-brand-50 text-brand-700 rounded-full text-xs font-medium cursor-pointer hover:bg-brand-100">All</span>
+            <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium cursor-pointer hover:bg-gray-200">Memories</span>
+            <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium cursor-pointer hover:bg-gray-200">Tasks</span>
+            <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium cursor-pointer hover:bg-gray-200">Events</span>
+          </div>
+        </div>
+        <p class="text-center text-gray-400 py-12">Start typing to search across all your data...</p>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="p-6 hidden fade-in">
+      <div class="max-w-2xl mx-auto space-y-6">
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="font-bold text-gray-900 mb-4">Profile</h3>
+          <div class="space-y-4">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Name</label><input type="text" value="User" class="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm" /></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" value="user@example.com" class="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm" /></div>
+            <button class="px-4 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600 transition">Save Changes</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="font-bold text-gray-900 mb-4">AI Settings</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div><p class="text-sm font-medium text-gray-900">Auto-extract tasks</p><p class="text-xs text-gray-500">Automatically create tasks from captured memories</p></div>
+              <div class="w-11 h-6 bg-brand-500 rounded-full relative cursor-pointer"><div class="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow transition"></div></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div><p class="text-sm font-medium text-gray-900">Voice transcription</p><p class="text-xs text-gray-500">Transcribe voice notes automatically</p></div>
+              <div class="w-11 h-6 bg-brand-500 rounded-full relative cursor-pointer"><div class="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow transition"></div></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div><p class="text-sm font-medium text-gray-900">Image analysis</p><p class="text-xs text-gray-500">Analyze images with AI vision</p></div>
+              <div class="w-11 h-6 bg-brand-500 rounded-full relative cursor-pointer"><div class="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow transition"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 class="font-bold text-gray-900 mb-4">Security</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div><p class="text-sm font-medium text-gray-900">Two-factor authentication</p><p class="text-xs text-gray-500">Add an extra layer of security</p></div>
+              <button class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition">Enable</button>
+            </div>
+            <div class="flex items-center justify-between">
+              <div><p class="text-sm font-medium text-gray-900">End-to-end encryption</p><p class="text-xs text-gray-500">Encrypt all your memories</p></div>
+              <div class="w-11 h-6 bg-brand-500 rounded-full relative cursor-pointer"><div class="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow transition"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== DATA =====
+    const memories = [
+      { id:1, type:'text', content:'Meeting with Sarah about Q4 roadmap. She wants to prioritize the mobile app launch by March.', source:'WhatsApp', tags:['meeting','roadmap','Q4'], time:'12 min ago' },
+      { id:2, type:'image', content:'Whiteboard sketch of the new architecture design for microservices migration.', source:'Email', tags:['architecture','design'], time:'2 hours ago' },
+      { id:3, type:'voice', content:'Voice note: Remember to follow up with the VC about the seed round. They mentioned $2M target.', source:'Telegram', tags:['investor','funding'], time:'3 hours ago' },
+      { id:4, type:'text', content:'Client feedback: The onboarding flow needs to be simpler. They got confused at step 3.', source:'WhatsApp', tags:['feedback','UX'], time:'5 hours ago' },
+      { id:5, type:'video', content:'Product demo recording for the investor pitch. Shows key features and user flow.', source:'Telegram', tags:['demo','pitch'], time:'Yesterday' },
+      { id:6, type:'text', content:'Sprint planning notes: Backend API should be ready by Friday. Frontend integration next week.', source:'Email', tags:['sprint','planning'], time:'Yesterday' },
+    ];
+
+    const tasks = {
+      pending: [
+        { title:'Follow up with VC about seed round', priority:'high', due:'Aug 28' },
+        { title:'Review competitor analysis doc', priority:'medium', due:'Aug 30' },
+        { title:'Update pitch deck slides', priority:'low', due:'Sep 1' },
+      ],
+      in_progress: [
+        { title:'Mobile app onboarding redesign', priority:'high', due:'Sep 5' },
+        { title:'API integration for calendar sync', priority:'medium', due:'Sep 3' },
+      ],
+      completed: [
+        { title:'Send proposal to client', priority:'high', due:'Aug 20' },
+        { title:'Set up CI/CD pipeline', priority:'medium', due:'Aug 18' },
+      ]
+    };
+
+    // ===== NAVIGATION =====
+    const pageTitles = { dashboard:'Dashboard', memories:'Memories', tasks:'Tasks', calendar:'Calendar', channels:'Channels', search:'Search', settings:'Settings' };
+
+    function showPage(name) {
+      document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
+      document.getElementById('page-' + name).classList.remove('hidden');
+      document.getElementById('pageTitle').textContent = pageTitles[name] || name;
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      event.currentTarget?.classList.add('active');
+      // Close sidebar on mobile
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('-translate-x-full');
+    }
+
+    // ===== MEMORIES =====
+    function renderMemories() {
+      const el = document.getElementById('memoryList');
+      el.innerHTML = memories.map(m => {
+        const icons = { text:'📝', image:'🖼️', voice:'🎤', video:'🎥' };
+        const colors = { text:'bg-blue-50', image:'bg-amber-50', voice:'bg-purple-50', video:'bg-red-50' };
+        return `
+        <div class="bg-white rounded-xl border border-gray-200 p-5 card-hover">
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-lg ${colors[m.type]} flex items-center justify-center text-xl flex-shrink-0">${icons[m.type]}</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-gray-900 text-sm leading-relaxed">${m.content}</p>
+              <div class="flex flex-wrap gap-1.5 mt-2">${m.tags.map(t => `<span class="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs">${t}</span>`).join('')}</div>
+              <div class="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                <span>📱 ${m.source}</span><span>🕐 ${m.time}</span>
+              </div>
+            </div>
+            <div class="flex gap-1 flex-shrink-0">
+              <button class="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-brand-600 transition">✏️</button>
+              <button class="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600 transition">🗑️</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ===== KANBAN =====
+    function renderKanban() {
+      const el = document.getElementById('kanbanBoard');
+      const cols = [
+        { key:'pending', label:'📋 Pending', bg:'bg-gray-500' },
+        { key:'in_progress', label:'🔄 In Progress', bg:'bg-blue-500' },
+        { key:'completed', label:'✅ Completed', bg:'bg-green-500' },
+      ];
+      el.innerHTML = cols.map(col => `
+        <div class="flex-1 min-w-[280px]">
+          <div class="px-4 py-3 ${col.bg} rounded-t-xl">
+            <h4 class="text-white font-semibold text-sm">${col.label} (${tasks[col.key].length})</h4>
+          </div>
+          <div class="bg-gray-50 border border-t-0 border-gray-200 rounded-b-xl p-3 kanban-col space-y-3">
+            ${tasks[col.key].map(t => {
+              const pColors = { high:'bg-red-50 text-red-700', medium:'bg-yellow-50 text-yellow-700', low:'bg-green-50 text-green-700' };
+              return `
+              <div class="bg-white rounded-lg border border-gray-200 p-4 card-hover cursor-pointer">
+                <div class="flex items-start justify-between mb-2">
+                  <h5 class="text-sm font-medium text-gray-900 flex-1">${t.title}</h5>
+                  <span class="px-2 py-0.5 text-[10px] font-semibold rounded ${pColors[t.priority]} ml-2 flex-shrink-0">${t.priority}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-400">📅 ${t.due}</span>
+                  <button class="text-gray-300 hover:text-red-500 transition">🗑️</button>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ===== CALENDAR =====
+    let calYear = 2026, calMonth = 7; // August 2026 (0-indexed)
+    const calEvents = {
+      '2026-08-26': [{ title:'Product Review', time:'3:00 PM', color:'bg-purple-100 text-purple-700' }],
+      '2026-08-28': [{ title:'VC Follow-up Call', time:'10:00 AM', color:'bg-blue-100 text-blue-700' }],
+      '2026-08-30': [{ title:'Sprint Demo', time:'2:00 PM', color:'bg-green-100 text-green-700' }],
+      '2026-09-01': [{ title:'Q4 Planning', time:'9:00 AM', color:'bg-orange-100 text-orange-700' }],
+    };
+
+    function renderCalendar() {
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      document.getElementById('calMonth').textContent = `${months[calMonth]} ${calYear}`;
+      const first = new Date(calYear, calMonth, 1);
+      const last = new Date(calYear, calMonth + 1, 0);
+      const startDay = first.getDay();
+      const daysInMonth = last.getDate();
+      const today = new Date();
+      const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+      let html = days.map(d => `<div class="p-2 text-center text-xs font-semibold text-gray-500 border-b">${d}</div>`).join('');
+      for (let i = 0; i < startDay; i++) html += '<div class="border-b border-r min-h-[90px] p-1.5 bg-gray-50/50"></div>';
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isToday = today.getDate()===d && today.getMonth()===calMonth && today.getFullYear()===calYear;
+        const events = calEvents[dateStr] || [];
+        html += `
+        <div class="border-b border-r min-h-[90px] p-1.5 hover:bg-gray-50 transition cursor-pointer ${isToday ? 'bg-brand-50' : ''}">
+          <div class="text-xs font-semibold ${isToday ? 'text-brand-600' : 'text-gray-700'} mb-1">${d}</div>
+          ${events.map(e => `<div class="text-[10px] ${e.color} px-1.5 py-0.5 rounded mb-0.5 truncate">${e.title}</div>`).join('')}
+        </div>`;
+      }
+      document.getElementById('calendarGrid').innerHTML = html;
+    }
+
+    function changeCalMonth(dir) {
+      calMonth += dir;
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      renderCalendar();
+    }
+
+    // ===== INIT =====
+    renderMemories();
+    renderKanban();
+    renderCalendar();
+  </script>
+</body>
+</html>

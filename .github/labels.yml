@@ -1,0 +1,115 @@
+- name: bug
+  color: d73a4a
+  description: Something isn't working
+
+- name: enhancement
+  color: a2eeef
+  description: New feature or request
+
+- name: documentation
+  color: 0075ca
+  description: Improvements or additions to documentation
+
+- name: good first issue
+  color: 7057ff
+  description: Good for newcomers
+
+- name: help wanted
+  color: 008672
+  description: Extra attention is needed
+
+- name: question
+  color: d876e3
+  description: Further information is requested
+
+- name: wontfix
+  color: ffffff
+  description: This will not be worked on
+
+- name: duplicate
+  color: cfd3d7
+  description: This issue or pull request already exists
+
+- name: invalid
+  color: e4e669
+  description: This doesn't seem right
+
+- name: wontfix
+  color: ffffff
+  description: This will not be worked on
+
+- name: dependencies
+  color: 0366d6
+  description: Pull requests that update a dependency file
+
+- name: security
+  color: ee0701
+  description: Security issues or vulnerabilities
+
+- name: performance
+  color: fbca04
+  description: Performance improvements
+
+- name: refactor
+  color: ededed
+  description: Code refactoring
+
+- name: test
+  color: b60205
+  description: Adding or updating tests
+
+- name: ci
+  color: d4c5f9
+  description: CI/CD related changes
+
+- name: docker
+  color: 2496ed
+  description: Docker related changes
+
+- name: terraform
+  color: 7b42bc
+  description: Terraform related changes
+
+- name: size/xs
+  color: 3CBF00
+  description: Extra small PR (1-10 lines)
+
+- name: size/s
+  color: 5D9801
+  description: Small PR (11-100 lines)
+
+- name: size/m
+  color: 7F7203
+  description: Medium PR (101-500 lines)
+
+- name: size/l
+  color: A14C05
+  description: Large PR (501-1000 lines)
+
+- name: size/xl
+  color: C32406
+  description: Extra large PR (1000+ lines)
+
+- name: api
+  color: 1d76db
+  description: API related changes
+
+- name: web
+  color: 0e8a16
+  description: Web dashboard related changes
+
+- name: mobile
+  color: fbca04
+  description: Mobile app related changes
+
+- name: ai
+  color: 5319e7
+  description: AI services related changes
+
+- name: database
+  color: 006b75
+  description: Database related changes
+
+- name: auth
+  color: d93f0b
+  description: Authentication related changes

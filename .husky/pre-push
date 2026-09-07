@@ -1,0 +1,13 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "Running tests before push..."
+
+# Run linting
+npm run lint
+
+# Run type checking
+npm run build
+
+# Run tests
+npm run test

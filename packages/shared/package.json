@@ -1,0 +1,16 @@
+{
+  "name": "@anchor/shared",
+  "version": "1.0.0",
+  "description": "Shared types, enums and utilities used by apps/api, apps/web and apps/mobile",
+  "private": true,
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

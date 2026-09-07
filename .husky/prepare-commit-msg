@@ -1,0 +1,52 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Get the commit message file
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Skip for merge commits and reverts
+if [ "$COMMIT_SOURCE" = "merge" ] || head -1 "$COMMIT_MSG_FILE" | grep -q "^Revert"; then
+  exit 0
+fi
+
+# Get the current branch name
+BRANCH_NAME=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+
+# Get the type from branch name
+if echo "$BRANCH_NAME" | grep -qE "^feature/"; then
+  TYPE="feat"
+elif echo "$BRANCH_NAME" | grep -qE "^fix/"; then
+  TYPE="fix"
+elif echo "$BRANCH_NAME" | grep -qE "^docs/"; then
+  TYPE="docs"
+elif echo "$BRANCH_NAME" | grep -qE "^refactor/"; then
+  TYPE="refactor"
+elif echo "$BRANCH_NAME" | grep -qE "^test/"; then
+  TYPE="test"
+elif echo "$BRANCH_NAME" | grep -qE "^chore/"; then
+  TYPE="chore"
+else
+  exit 0
+fi
+
+# Get the scope from branch name (optional)
+SCOPE=$(echo "$BRANCH_NAME" | sed -E 's|^feature/||;s|^fix/||;s|^docs/||;s|^refactor/||;s|^test/||;s|^chore/||' | cut -d'/' -f1)
+
+# Read the existing commit message
+EXISTING_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# If the message already has the type prefix, don't modify
+if echo "$EXISTING_MSG" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)"; then
+  exit 0
+fi
+
+# Construct the new commit message
+if [ -n "$SCOPE" ] && [ "$SCOPE" != "$BRANCH_NAME" ]; then
+  NEW_MSG="$TYPE($SCOPE): $EXISTING_MSG"
+else
+  NEW_MSG="$TYPE: $EXISTING_MSG"
+fi
+
+# Write the new commit message
+echo "$NEW_MSG" > "$COMMIT_MSG_FILE"

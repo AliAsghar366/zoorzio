@@ -1,0 +1,19 @@
+# Built with the monorepo root as context (see docker-compose.dev.yml),
+# since apps/api depends on the sibling workspace package @anchor/database.
+FROM node:18-alpine
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/database/package.json ./packages/database/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/database/prisma ./packages/database/prisma
+
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev:api"]

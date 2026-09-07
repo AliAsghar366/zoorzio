@@ -1,0 +1,23 @@
+# Default owners for everything in the repo
+* @anchor/core-team
+
+# API
+/apps/api/ @anchor/backend-team
+
+# Web
+/apps/web/ @anchor/frontend-team
+
+# Mobile
+/apps/mobile/ @anchor/mobile-team
+
+# AI
+/apps/ai/ @anchor/ml-team
+
+# Infrastructure
+/infrastructure/ @anchor/devops-team
+
+# Documentation
+/docs/ @anchor/docs-team
+
+# CI/CD
+/.github/ @anchor/devops-team

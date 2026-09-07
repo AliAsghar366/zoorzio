@@ -1,0 +1,678 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // DATABASE_URL: Supabase's pooled connection (port 6543, ?pgbouncer=true) -
+  // used by the running app, safe for serverless (many short-lived connections).
+  // DIRECT_URL: Supabase's direct connection (port 5432) - required by
+  // `prisma migrate deploy`/`db push` because PgBouncer's transaction pooling
+  // mode doesn't support the prepared statements Prisma migrations rely on.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User model
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  phone         String?   @unique
+  avatar        String?
+  location      String?
+  role          UserRole  @default(USER)
+  timezone      String    @default("Asia/Karachi")
+  language      String    @default("en")
+  metadata      Json      @default("{}")
+  // Recorded at registration - required before an account can be created
+  // (see RegisterDto.acceptedPrivacyPolicy). privacyPolicyVersion lets us
+  // tell which version of the policy a given user actually agreed to if it
+  // changes later; kept alongside an immutable AuditLog entry
+  // ('PRIVACY_POLICY_ACCEPTED') as the evidentiary record of consent.
+  privacyAcceptedAt     DateTime?
+  privacyPolicyVersion  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  memories      Memory[]
+  tasks         Task[]
+  calendars     Calendar[]
+  channels      Channel[]
+  preferences   UserPreferences?
+  integrations  Integration[]
+  apiKeys       ApiKey[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  knowledgeItems KnowledgeItem[]
+  reminders     Reminder[]
+  lists         List[]
+  subscription  Subscription?
+  sharesOwned   Share[]   @relation("SharesOwned")
+  sharesReceived Share[]  @relation("SharesReceived")
+  passwordResetTokens PasswordResetToken[]
+  notifications Notification[]
+  friendshipsSent     Friendship[]     @relation("FriendshipsSent")
+  friendshipsReceived Friendship[]     @relation("FriendshipsReceived")
+  friendRemindersSent     FriendReminder[] @relation("FriendRemindersSent")
+  friendRemindersReceived FriendReminder[] @relation("FriendRemindersReceived")
+  channelVerifications    ChannelVerification[]
+  boards                  Board[]
+
+  @@map("users")
+}
+
+// Password reset - tokenHash stores a SHA-256 hash of the raw token that was
+// emailed to the user, so a leaked database never exposes usable tokens.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// In-app notification center - surfaces due reminders, sharing activity, and
+// system messages inside the product itself, independent of whether the user
+// has any external channel (WhatsApp/Telegram/email) connected.
+model Notification {
+  id           String           @id @default(cuid())
+  userId       String
+  type         NotificationType
+  title        String
+  message      String
+  isRead       Boolean          @default(false)
+  resourceType String?
+  resourceId   String?
+  createdAt    DateTime         @default(now())
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  REMINDER_DUE
+  SHARED_WITH_YOU
+  FRIEND_REQUEST
+  FRIEND_REMINDER
+  SYSTEM
+}
+
+// Friend-to-friend social graph, distinct from list/reminder Sharing - this
+// is a mutual connection (request/accept) that unlocks sending someone a
+// reminder directly, gated by daily/monthly quotas (see FriendsService).
+model Friendship {
+  id           String           @id @default(cuid())
+  requesterId  String
+  addresseeId  String
+  status       FriendshipStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  respondedAt  DateTime?
+
+  requester    User             @relation("FriendshipsSent", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee    User             @relation("FriendshipsReceived", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+  @@map("friendships")
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+// A reminder one friend sends directly to another - separate from the
+// personal Reminder model so friend-to-friend quotas (50/day, 1000/month)
+// can be enforced independently of a user's own reminders.
+model FriendReminder {
+  id          String   @id @default(cuid())
+  senderId    String
+  recipientId String
+  message     String
+  scheduledAt DateTime?
+  createdAt   DateTime @default(now())
+
+  sender      User     @relation("FriendRemindersSent", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("FriendRemindersReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId])
+  @@index([senderId, createdAt])
+  @@map("friend_reminders")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// Subscription plans (paid tiers - Stripe price IDs are wired up once a
+// merchant account is provided; until then billing runs in demo mode).
+model Plan {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  priceCents    Int
+  currency      String    @default("usd")
+  features      String[]
+  stripePriceId String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  planId               String
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 Plan               @relation(fields: [planId], references: [id])
+
+  @@index([planId])
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+// User preferences
+model UserPreferences {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  aiTone        String    @default("professional")
+  notifications Json      @default("{}")
+  privacy       Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// Memory - Core feature
+model Memory {
+  id            String    @id @default(cuid())
+  userId        String
+  content       String
+  summary       String?
+  type          MemoryType
+  source        ChannelType
+  metadata      Json      @default("{}")
+  embedding     Float[]
+  searchVector  Unsupported("tsvector")?     @map("search_vector")
+  tags          String[]
+  isArchived    Boolean   @default(false)
+  isVerified    Boolean   @default(false)
+  lastAccessed  DateTime  @default(now())
+  accessCount   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks         Task[]
+  reminders     Reminder[]
+  knowledgeItems KnowledgeItem[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([source])
+  @@index([createdAt])
+  @@map("memories")
+}
+
+enum MemoryType {
+  NOTE
+  TASK
+  REMINDER
+  EVENT
+  MESSAGE
+  VOICE_NOTE
+  IMAGE
+  EMAIL
+  LINK
+  FILE
+}
+
+enum ChannelType {
+  WHATSAPP
+  TELEGRAM
+  EMAIL
+  SMS
+  DISCORD
+  SLACK
+  VOICE
+  NATIVE_APP
+  WEB
+  API
+}
+
+// Knowledge items for semantic search
+model KnowledgeItem {
+  id            String    @id @default(cuid())
+  memoryId      String
+  userId        String
+  content       String
+  type          String
+  metadata      Json      @default("{}")
+  embedding     Float[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  memory        Memory    @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@map("knowledge_items")
+}
+
+// Trello-style boards that group tasks. Every user gets a default board
+// lazily created on first use (see BoardsService.getOrCreateDefault) - boardId
+// stays nullable at the DB level so existing tasks never need a backfill
+// migration; the API layer is what guarantees a task always has a board.
+model Board {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@index([userId])
+  @@map("boards")
+}
+
+// Tasks
+model Task {
+  id            String    @id @default(cuid())
+  userId        String
+  memoryId      String?
+  boardId       String?
+  title         String
+  description   String?
+  status        TaskStatus @default(PENDING)
+  priority      TaskPriority @default(MEDIUM)
+  dueDate       DateTime?
+  completedAt   DateTime?
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memory        Memory?   @relation(fields: [memoryId], references: [id], onDelete: SetNull)
+  board         Board?    @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  reminders     Reminder[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([boardId])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Reminders
+model Reminder {
+  id            String    @id @default(cuid())
+  userId        String
+  taskId        String?
+  memoryId      String?
+  title         String
+  message       String?
+  scheduledAt   DateTime
+  completedAt   DateTime?
+  lastTriggeredAt DateTime?
+  recurrence    Json?
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task          Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  memory        Memory?   @relation(fields: [memoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([scheduledAt])
+  @@map("reminders")
+}
+
+// Lists (shopping, to-do, ideas) - distinct from a single Task/Reminder,
+// a List groups multiple checkable items under one name.
+model List {
+  id            String    @id @default(cuid())
+  userId        String
+  name          String
+  type          ListType  @default(CUSTOM)
+  isArchived    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         ListItem[]
+
+  @@index([userId])
+  @@map("lists")
+}
+
+enum ListType {
+  TODO
+  SHOPPING
+  IDEAS
+  CUSTOM
+}
+
+model ListItem {
+  id            String    @id @default(cuid())
+  listId        String
+  content       String
+  isChecked     Boolean   @default(false)
+  position      Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  list          List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@map("list_items")
+}
+
+// Sharing / collaboration - lets a user grant another Anchor user access to
+// one of their Lists or Reminders (Memorae's "Friends" feature).
+model Share {
+  id            String            @id @default(cuid())
+  ownerId       String
+  sharedWithId  String
+  resourceType  ShareResourceType
+  resourceId    String
+  permission    SharePermission   @default(VIEW)
+  createdAt     DateTime          @default(now())
+
+  owner         User              @relation("SharesOwned", fields: [ownerId], references: [id], onDelete: Cascade)
+  sharedWith    User              @relation("SharesReceived", fields: [sharedWithId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceType, resourceId, sharedWithId])
+  @@index([ownerId])
+  @@index([sharedWithId])
+  @@map("shares")
+}
+
+enum ShareResourceType {
+  LIST
+  REMINDER
+}
+
+enum SharePermission {
+  VIEW
+  EDIT
+}
+
+// Calendar integration
+model Calendar {
+  id            String    @id @default(cuid())
+  userId        String
+  provider      CalendarProvider
+  externalId    String
+  name          String
+  color         String?
+  isActive      Boolean   @default(true)
+  lastSync      DateTime?
+  syncToken     String?
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events        CalendarEvent[]
+
+  @@unique([userId, provider, externalId])
+  @@map("calendars")
+}
+
+enum CalendarProvider {
+  GOOGLE
+  OUTLOOK
+  APPLE
+  LOCAL
+}
+
+// Calendar events
+model CalendarEvent {
+  id            String    @id @default(cuid())
+  calendarId    String
+  externalId    String
+  title         String
+  description   String?
+  location      String?
+  startTime     DateTime
+  endTime       DateTime
+  allDay        Boolean   @default(false)
+  recurrence    Json?
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  calendar      Calendar  @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, externalId])
+  @@index([startTime])
+  @@map("calendar_events")
+}
+
+// Channel integrations
+model Channel {
+  id            String    @id @default(cuid())
+  userId        String
+  type          ChannelType
+  externalId    String
+  name          String?
+  isActive      Boolean   @default(true)
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      ChannelMessage[]
+
+  @@unique([userId, type, externalId])
+  // A given phone number / chat id / email address can only ever be linked to
+  // one account - without this, two users could each create a Channel row
+  // for the same externalId and inbound-message lookups would be ambiguous.
+  @@unique([type, externalId])
+  @@map("channels")
+}
+
+// Short-lived, hashed codes/tokens used to prove ownership of an external
+// channel identity (a WhatsApp number, a Telegram chat) before it gets linked
+// to an account - mirrors PasswordResetToken's shape and lifecycle.
+model ChannelVerification {
+  id          String      @id @default(cuid())
+  userId      String
+  channelType ChannelType
+  codeHash    String      @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime    @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, channelType])
+  @@map("channel_verifications")
+}
+
+// Channel messages
+model ChannelMessage {
+  id            String    @id @default(cuid())
+  channelId     String
+  externalId    String
+  content       String
+  type          MessageType
+  direction     MessageDirection
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  channel       Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, externalId])
+  @@index([createdAt])
+  @@map("channel_messages")
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VOICE
+  VIDEO
+  DOCUMENT
+  LOCATION
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+// External integrations
+model Integration {
+  id            String    @id @default(cuid())
+  userId        String
+  type          IntegrationType
+  name          String
+  isActive      Boolean   @default(true)
+  config        Json      @default("{}")
+  lastSync      DateTime?
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("integrations")
+}
+
+enum IntegrationType {
+  NOTION
+  SLACK
+  JIRA
+  GOOGLE_WORKSPACE
+  GITHUB
+  TRELLO
+  ASANA
+  CUSTOM
+}
+
+// API keys for developer access
+model ApiKey {
+  id            String    @id @default(cuid())
+  userId        String
+  name          String
+  keyHash       String    @unique
+  prefix        String
+  permissions   Json      @default("{}")
+  expiresAt     DateTime?
+  lastUsedAt    DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
+}
+
+// User sessions for auth
+model Session {
+  id            String    @id @default(cuid())
+  userId        String
+  token         String    @unique
+  userAgent     String?
+  ipAddress     String?
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// Audit logs for security
+model AuditLog {
+  id            String    @id @default(cuid())
+  userId        String
+  action        String
+  resource      String
+  resourceId    String?
+  metadata      Json      @default("{}")
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

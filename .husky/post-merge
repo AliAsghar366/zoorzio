@@ -1,0 +1,10 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Check if package.json changed
+CHANGED_FILES=$(git diff HEAD@{1} HEAD --name-only | grep -E "package\.json$" || true)
+
+if [ -n "$CHANGED_FILES" ]; then
+  echo "📦 package.json changed, running npm install..."
+  npm install
+fi

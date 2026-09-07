@@ -1,0 +1,30 @@
+{
+  "name": "@anchor/database",
+  "version": "1.0.0",
+  "description": "Anchor shared Prisma schema and database client",
+  "private": true,
+  "license": "MIT",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "prisma": {
+    "seed": "ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" prisma/seed.ts"
+  },
+  "scripts": {
+    "generate": "prisma generate --schema=./prisma/schema.prisma",
+    "migrate:dev": "prisma migrate dev --schema=./prisma/schema.prisma",
+    "migrate:deploy": "prisma migrate deploy --schema=./prisma/schema.prisma",
+    "migrate:diff": "prisma migrate diff --from-empty --to-schema-datamodel ./prisma/schema.prisma --script",
+    "studio": "prisma studio --schema=./prisma/schema.prisma",
+    "seed": "prisma db seed --schema=./prisma/schema.prisma",
+    "postinstall": "prisma generate --schema=./prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.8.1",
+    "argon2": "^0.31.2"
+  },
+  "devDependencies": {
+    "prisma": "^5.8.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

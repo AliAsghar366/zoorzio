@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "Zoorzio",
+    "slug": "anchor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0f23"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anchor.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Zoorzio needs camera access to capture images and scan documents.",
+        "NSMicrophoneUsageDescription": "Zoorzio needs microphone access to record voice notes.",
+        "NSPhotoLibraryUsageDescription": "Zoorzio needs photo library access to save and select images."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f0f23"
+      },
+      "package": "com.anchor.app",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Zoorzio to access your camera for capturing images and scanning documents."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Zoorzio to access your contacts for sharing features."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Zoorzio to access your photos for selecting images.",
+          "cameraPermission": "Allow Zoorzio to access your camera for capturing images."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366f1",
+          "sounds": ["./assets/notification.wav"]
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow Zoorzio to use Face ID for secure authentication."
+        }
+      ]
+    ]
+  }
+}

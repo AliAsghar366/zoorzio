@@ -1,0 +1,22 @@
+addReviewers: true
+addAssignees: true
+
+runners:
+  - name: node
+    runs-on: ubuntu-latest
+    filters:
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.jsx'
+
+reviewers:
+  - anchor/core-team
+
+assignees:
+  - anchor/core-team
+
+skipKeywords:
+  - wip
+  - draft
+  - do not merge

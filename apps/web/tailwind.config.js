@@ -1,0 +1,126 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        // Brand palette (exact hexes)
+        lavender: '#AC84CC',
+        'soft-purple': '#9283D9',
+        'pastel-pink': '#DC8CC5',
+        'peach-pink': '#F9979D',
+        'soft-peach': '#FCAD96',
+        'pastel-blue': '#7EA9E4',
+        'soft-cream': '#F5CAA2',
+
+        primary: {
+          50: '#F5F3FB',
+          100: '#EAE8F8',
+          200: '#D6D0F1',
+          300: '#AC84CC',
+          400: '#9283D9',
+          500: '#7563CF',
+          600: '#523CC3',
+          700: '#42309C',
+          800: '#312475',
+          900: '#241A56',
+          DEFAULT: '#9283D9',
+        },
+        accent: {
+          50: '#FBF3F9',
+          100: '#F8E8F3',
+          200: '#F1D0E7',
+          300: '#DC8CC5',
+          400: '#CF63B0',
+          500: '#C33C9D',
+          600: '#9C307D',
+          700: '#75245E',
+          800: '#561A45',
+          900: '#3D1230',
+          DEFAULT: '#DC8CC5',
+        },
+        peach: {
+          50: '#FDF4F1',
+          100: '#FCE9E3',
+          200: '#FCAD96',
+          300: '#F9979D',
+          400: '#F09275',
+          500: '#EB6D47',
+          600: '#E64919',
+          DEFAULT: '#FCAD96',
+        },
+        cream: {
+          50: '#FCF7F2',
+          100: '#FAEFE6',
+          200: '#F5CAA2',
+          300: '#EDCBAB',
+          400: '#E4B181',
+          DEFAULT: '#F5CAA2',
+        },
+        sky: {
+          50: '#F3F7FC',
+          100: '#E7EEF9',
+          200: '#CEDDF3',
+          300: '#7EA9E4',
+          400: '#5C8FD6',
+          500: '#3373CC',
+          600: '#295CA3',
+          700: '#1F457A',
+          800: '#16325A',
+          DEFAULT: '#7EA9E4',
+        },
+        // Warm-neutral surface scale for a soft light theme
+        anchor: {
+          50: '#FDFCFE',
+          100: '#F7F5FB',
+          200: '#EDEAF5',
+          300: '#DCD7EA',
+          400: '#B6AFCB',
+          500: '#8D84A3',
+          600: '#6B6280',
+          700: '#4F485F',
+          800: '#332E3F',
+          900: '#211D29',
+        },
+      },
+      fontFamily: {
+        sans: ['Poppins', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      backgroundImage: {
+        'brand-gradient': 'linear-gradient(135deg, #AC84CC 0%, #DC8CC5 45%, #FCAD96 75%, #F5CAA2 100%)',
+        'brand-gradient-soft': 'linear-gradient(135deg, #F5F3FB 0%, #FBF3F9 45%, #FDF4F1 75%, #FCF7F2 100%)',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.5s ease-in-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'slide-down': 'slideDown 0.3s ease-out',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+      },
+    },
+  },
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
+  ],
+};

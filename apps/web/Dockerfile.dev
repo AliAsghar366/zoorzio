@@ -1,0 +1,19 @@
+# Built with the monorepo root as context (see docker-compose.dev.yml),
+# since apps/web depends on the sibling workspace packages @anchor/shared and @anchor/ui.
+FROM node:18-alpine
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/ui/package.json ./packages/ui/
+
+RUN npm install
+
+COPY . .
+
+RUN npm run build --workspace=@anchor/shared && npm run build --workspace=@anchor/ui
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev:web"]
