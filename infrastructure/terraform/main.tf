@@ -104,7 +104,7 @@ resource "random_password" "redis_auth" {
 # RDS PostgreSQL
 module "db" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "6.0.0"
+  version = "7.2.1"
 
   identifier = "${var.project_name}-db"
 
