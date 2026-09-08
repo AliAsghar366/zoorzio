@@ -39,12 +39,14 @@ COPY apps/ai/ .
 RUN useradd --create-home --shell /bin/bash anchor
 USER anchor
 
-# Expose port
+# Expose port (default for local/docker-compose use; PORT env var below takes
+# priority when set, e.g. by Railway assigning its own port at runtime)
 EXPOSE 8000
+ENV PORT=8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+  CMD python -c "import os,urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ.get(\"PORT\", 8000)}/health')" || exit 1
 
-# Start the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start the application - shell form so $PORT expansion works
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
