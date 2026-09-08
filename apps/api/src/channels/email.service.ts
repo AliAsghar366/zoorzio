@@ -5,6 +5,19 @@ import { firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { MemoryService } from '../memory/memory.service';
+import { ChannelCredentialsService } from './channel-credentials.service';
+import { ChannelType } from '@anchor/database';
+
+export interface SendEmailOptions {
+  /**
+   * Send using the user's own SendGrid key and verified sender, when they
+   * have connected one. Off by default *on purpose*: system mail (password
+   * resets, briefings) must always go out on the platform's own key, since
+   * most users have no key of their own and a failed reset email locks
+   * someone out of their account. Only user-initiated sends opt in.
+   */
+  preferUserCredential?: boolean;
+}
 
 @Injectable()
 export class EmailService {
@@ -15,6 +28,7 @@ export class EmailService {
     private prisma: PrismaService,
     private memoryService: MemoryService,
     private readonly http: HttpService,
+    private readonly channelCredentials: ChannelCredentialsService,
   ) {}
 
   async handleInboundEmail(emailData: any) {
@@ -96,9 +110,29 @@ export class EmailService {
     }
   }
 
-  async sendEmail(userId: string, to: string, subject: string, body: string) {
-    const apiKey = this.configService.get('SENDGRID_API_KEY');
-    const fromEmail = this.configService.get('EMAIL_FROM_ADDRESS', 'noreply@anchor.app');
+  async sendEmail(
+    userId: string,
+    to: string,
+    subject: string,
+    body: string,
+    options: SendEmailOptions = {},
+  ) {
+    let apiKey = this.configService.get('SENDGRID_API_KEY');
+    let fromEmail = this.configService.get('EMAIL_FROM_ADDRESS', 'noreply@anchor.app');
+
+    if (options.preferUserCredential) {
+      const ownCredential = await this.channelCredentials.getDecryptedToken(
+        userId,
+        ChannelType.EMAIL,
+      );
+      if (ownCredential) {
+        apiKey = ownCredential.token;
+        // SendGrid rejects a "from" it hasn't verified, so only override the
+        // sender when the user actually gave us their verified one.
+        const ownFrom = (ownCredential.metadata as any)?.fromEmail;
+        if (ownFrom) fromEmail = ownFrom;
+      }
+    }
 
     let messageId = `local_${Date.now()}`;
     try {

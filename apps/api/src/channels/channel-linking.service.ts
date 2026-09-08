@@ -1,8 +1,15 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChannelType } from '@anchor/database';
+import { ChannelCredentialsService } from './channel-credentials.service';
 
 const LINK_TTL_MS = 10 * 60 * 1000;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I - avoids typos
@@ -28,6 +35,7 @@ export class ChannelLinkingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly channelCredentials: ChannelCredentialsService,
   ) {}
 
   isWhatsAppLinkingConfigured(): boolean {
@@ -51,7 +59,10 @@ export class ChannelLinkingService {
   }
 
   private async generateCode(userId: string, channelType: ChannelType): Promise<string> {
-    const code = Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join('');
+    const code = Array.from(
+      { length: 6 },
+      () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)],
+    ).join('');
     await this.storeVerification(userId, channelType, code);
     return code;
   }
@@ -64,7 +75,12 @@ export class ChannelLinkingService {
 
   private async storeVerification(userId: string, channelType: ChannelType, raw: string) {
     await this.prisma.channelVerification.create({
-      data: { userId, channelType, codeHash: hash(this.normalize(raw)), expiresAt: new Date(Date.now() + LINK_TTL_MS) },
+      data: {
+        userId,
+        channelType,
+        codeHash: hash(this.normalize(raw)),
+        expiresAt: new Date(Date.now() + LINK_TTL_MS),
+      },
     });
   }
 
@@ -72,7 +88,9 @@ export class ChannelLinkingService {
     return raw.trim().toUpperCase();
   }
 
-  async createWhatsAppLinkCode(userId: string): Promise<{ code: string; waLink: string | null; configured: boolean }> {
+  async createWhatsAppLinkCode(
+    userId: string,
+  ): Promise<{ code: string; waLink: string | null; configured: boolean }> {
     const code = await this.generateCode(userId, ChannelType.WHATSAPP);
 
     const businessNumber = this.config.get<string>('WHATSAPP_BUSINESS_PHONE_NUMBER');
@@ -82,27 +100,42 @@ export class ChannelLinkingService {
       : null;
 
     if (!configured) {
-      this.logger.warn(`WHATSAPP_BUSINESS_PHONE_NUMBER not configured - link code for user ${userId}: LINK ${code}`);
+      this.logger.warn(
+        `WHATSAPP_BUSINESS_PHONE_NUMBER not configured - link code for user ${userId}: LINK ${code}`,
+      );
     }
 
     return { code, waLink, configured };
   }
 
-  async createTelegramLinkToken(userId: string): Promise<{ deepLink: string | null; configured: boolean }> {
+  async createTelegramLinkToken(
+    userId: string,
+  ): Promise<{ deepLink: string | null; configured: boolean }> {
     const token = await this.generateToken(userId, ChannelType.TELEGRAM);
 
-    const botUsername = this.config.get<string>('TELEGRAM_BOT_USERNAME');
+    // Prefer the user's own bot (if they've connected one) so /start hits
+    // their bot, not the shared platform one.
+    const ownCredential = await this.channelCredentials.getDecryptedToken(
+      userId,
+      ChannelType.TELEGRAM,
+    );
+    const ownBotUsername = (ownCredential?.metadata as any)?.botUsername as string | undefined;
+    const botUsername = ownBotUsername || this.config.get<string>('TELEGRAM_BOT_USERNAME');
     const configured = !!botUsername;
     const deepLink = configured ? `https://t.me/${botUsername}?start=${token}` : null;
 
     if (!configured) {
-      this.logger.warn(`TELEGRAM_BOT_USERNAME not configured - link token for user ${userId}: ${token}`);
+      this.logger.warn(
+        `TELEGRAM_BOT_USERNAME not configured - link token for user ${userId}: ${token}`,
+      );
     }
 
     return { deepLink, configured };
   }
 
-  async createSmsLinkCode(userId: string): Promise<{ code: string; smsLink: string | null; configured: boolean }> {
+  async createSmsLinkCode(
+    userId: string,
+  ): Promise<{ code: string; smsLink: string | null; configured: boolean }> {
     const code = await this.generateCode(userId, ChannelType.SMS);
 
     const businessNumber = this.config.get<string>('TWILIO_PHONE_NUMBER');
@@ -112,7 +145,9 @@ export class ChannelLinkingService {
       : null;
 
     if (!configured) {
-      this.logger.warn(`TWILIO_PHONE_NUMBER not configured - link code for user ${userId}: LINK ${code}`);
+      this.logger.warn(
+        `TWILIO_PHONE_NUMBER not configured - link code for user ${userId}: LINK ${code}`,
+      );
     }
 
     return { code, smsLink, configured };
@@ -122,7 +157,9 @@ export class ChannelLinkingService {
     const code = await this.generateCode(userId, ChannelType.DISCORD);
     const configured = this.isDiscordLinkingConfigured();
     if (!configured) {
-      this.logger.warn(`DISCORD_BOT_TOKEN not configured - link code for user ${userId}: LINK ${code}`);
+      this.logger.warn(
+        `DISCORD_BOT_TOKEN not configured - link code for user ${userId}: LINK ${code}`,
+      );
     }
     return { code, configured };
   }
@@ -131,18 +168,29 @@ export class ChannelLinkingService {
     const code = await this.generateCode(userId, ChannelType.SLACK);
     const configured = this.isSlackLinkingConfigured();
     if (!configured) {
-      this.logger.warn(`SLACK_BOT_TOKEN not configured - link code for user ${userId}: LINK ${code}`);
+      this.logger.warn(
+        `SLACK_BOT_TOKEN not configured - link code for user ${userId}: LINK ${code}`,
+      );
     }
     return { code, configured };
   }
 
   /** Returns the linked userId on success, or null if the code is unknown/expired/used. */
   async consumeWhatsAppLinkCode(rawCode: string, phoneNumber: string): Promise<string | null> {
-    return this.consume(ChannelType.WHATSAPP, hash(this.normalize(rawCode)), phoneNumber, phoneNumber);
+    return this.consume(
+      ChannelType.WHATSAPP,
+      hash(this.normalize(rawCode)),
+      phoneNumber,
+      phoneNumber,
+    );
   }
 
   /** Returns the linked userId on success, or null if the token is unknown/expired/used. */
-  async consumeTelegramLinkToken(rawToken: string, chatId: string, displayName?: string): Promise<string | null> {
+  async consumeTelegramLinkToken(
+    rawToken: string,
+    chatId: string,
+    displayName?: string,
+  ): Promise<string | null> {
     return this.consume(ChannelType.TELEGRAM, hash(rawToken.trim()), chatId, displayName ?? chatId);
   }
 
@@ -150,12 +198,36 @@ export class ChannelLinkingService {
     return this.consume(ChannelType.SMS, hash(this.normalize(rawCode)), phoneNumber, phoneNumber);
   }
 
-  async consumeDiscordLinkCode(rawCode: string, discordUserId: string, displayName?: string): Promise<string | null> {
-    return this.consume(ChannelType.DISCORD, hash(this.normalize(rawCode)), discordUserId, displayName ?? discordUserId);
+  /**
+   * expectedUserId scopes the code to one account - passed by a user's own
+   * Discord bot so that only its owner can complete a link through it.
+   */
+  async consumeDiscordLinkCode(
+    rawCode: string,
+    discordUserId: string,
+    displayName?: string,
+    expectedUserId?: string | null,
+  ): Promise<string | null> {
+    return this.consume(
+      ChannelType.DISCORD,
+      hash(this.normalize(rawCode)),
+      discordUserId,
+      displayName ?? discordUserId,
+      expectedUserId,
+    );
   }
 
-  async consumeSlackLinkCode(rawCode: string, slackUserId: string, displayName?: string): Promise<string | null> {
-    return this.consume(ChannelType.SLACK, hash(this.normalize(rawCode)), slackUserId, displayName ?? slackUserId);
+  async consumeSlackLinkCode(
+    rawCode: string,
+    slackUserId: string,
+    displayName?: string,
+  ): Promise<string | null> {
+    return this.consume(
+      ChannelType.SLACK,
+      hash(this.normalize(rawCode)),
+      slackUserId,
+      displayName ?? slackUserId,
+    );
   }
 
   private async consume(
@@ -163,9 +235,24 @@ export class ChannelLinkingService {
     codeHash: string,
     externalId: string,
     displayName: string,
+    expectedUserId?: string | null,
   ): Promise<string | null> {
     const verification = await this.prisma.channelVerification.findUnique({ where: { codeHash } });
-    if (!verification || verification.channelType !== channelType || verification.usedAt || verification.expiresAt < new Date()) {
+    if (
+      !verification ||
+      verification.channelType !== channelType ||
+      verification.usedAt ||
+      verification.expiresAt < new Date()
+    ) {
+      return null;
+    }
+
+    // Rejected *before* the code is marked used, so a code sent to the wrong
+    // bot stays valid for the owner to use on their own.
+    if (expectedUserId && verification.userId !== expectedUserId) {
+      this.logger.warn(
+        `${channelType} link code was sent to a bot belonging to a different account - refusing`,
+      );
       return null;
     }
 
@@ -176,7 +263,9 @@ export class ChannelLinkingService {
       where: { type_externalId: { type: channelType, externalId } },
     });
     if (existing && existing.userId !== verification.userId) {
-      this.logger.warn(`${channelType} ${externalId} is already linked to a different account - refusing to relink`);
+      this.logger.warn(
+        `${channelType} ${externalId} is already linked to a different account - refusing to relink`,
+      );
       return null;
     }
 
@@ -186,7 +275,10 @@ export class ChannelLinkingService {
         update: { userId: verification.userId, name: displayName, isActive: true },
         create: { userId: verification.userId, type: channelType, externalId, name: displayName },
       }),
-      this.prisma.channelVerification.update({ where: { id: verification.id }, data: { usedAt: new Date() } }),
+      this.prisma.channelVerification.update({
+        where: { id: verification.id },
+        data: { usedAt: new Date() },
+      }),
     ]);
 
     return verification.userId;
@@ -196,9 +288,24 @@ export class ChannelLinkingService {
     return this.prisma.channel.findMany({
       where: {
         userId,
-        type: { in: [ChannelType.WHATSAPP, ChannelType.TELEGRAM, ChannelType.SMS, ChannelType.DISCORD, ChannelType.SLACK] },
+        type: {
+          in: [
+            ChannelType.WHATSAPP,
+            ChannelType.TELEGRAM,
+            ChannelType.SMS,
+            ChannelType.DISCORD,
+            ChannelType.SLACK,
+          ],
+        },
       },
-      select: { id: true, type: true, externalId: true, name: true, isActive: true, createdAt: true },
+      select: {
+        id: true,
+        type: true,
+        externalId: true,
+        name: true,
+        isActive: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

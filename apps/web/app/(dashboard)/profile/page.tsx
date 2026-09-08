@@ -4,9 +4,20 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, Globe, MapPin, Sparkles, LogOut, ChevronDown, Camera, Bell } from 'lucide-react';
+import {
+  Mail,
+  Phone,
+  Globe,
+  MapPin,
+  Sparkles,
+  LogOut,
+  ChevronDown,
+  Camera,
+  Bell,
+} from 'lucide-react';
 import { api, logout, ApiError, channelsApi, type LinkedChannel } from '@/lib/api';
 import { ChannelLinkPanel } from '@/components/ChannelLinkPanel';
+import { ChannelCredentialPanel } from '@/components/ChannelCredentialPanel';
 import type { User } from '@anchor/shared';
 
 const MAX_AVATAR_BYTES = 1.5 * 1024 * 1024;
@@ -51,10 +62,22 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get<User>('/users/me').then(setUser).catch(() => setError('Failed to load your profile.'));
-    api.get<Subscription | null>('/billing/subscription').then(setSubscription).catch(() => setSubscription(null));
-    api.get<Preferences>('/users/me/preferences').then(setPreferences).catch(() => undefined);
-    channelsApi.listLinked().then(setLinkedChannels).catch(() => undefined);
+    api
+      .get<User>('/users/me')
+      .then(setUser)
+      .catch(() => setError('Failed to load your profile.'));
+    api
+      .get<Subscription | null>('/billing/subscription')
+      .then(setSubscription)
+      .catch(() => setSubscription(null));
+    api
+      .get<Preferences>('/users/me/preferences')
+      .then(setPreferences)
+      .catch(() => undefined);
+    channelsApi
+      .listLinked()
+      .then(setLinkedChannels)
+      .catch(() => undefined);
   }, []);
 
   const handlePersonalityChange = async (tone: string) => {
@@ -75,7 +98,9 @@ export default function ProfilePage() {
     const next = options[(options.indexOf(current) + 1) % options.length];
     try {
       await api.put('/users/me/preferences', { notifications: { preferredChannel: next } });
-      setPreferences((prev) => (prev ? { ...prev, notifications: { preferredChannel: next } } : prev));
+      setPreferences((prev) =>
+        prev ? { ...prev, notifications: { preferredChannel: next } } : prev,
+      );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to update notification channel');
     }
@@ -148,24 +173,26 @@ export default function ProfilePage() {
   const notificationChannelLabel = preferences?.notifications?.preferredChannel || 'EMAIL';
 
   return (
-    <div className="text-white pb-4">
-      <h1 className="text-3xl font-bold text-center">Profile</h1>
-      <p className="text-white/60 text-sm text-center mt-2 max-w-md mx-auto">
-        Here you can update your email address, phone number, and password. Keep them up to date so you don&apos;t miss your reminders.
+    <div className="pb-4 text-white">
+      <h1 className="text-center text-3xl font-bold">Profile</h1>
+      <p className="mx-auto mt-2 max-w-md text-center text-sm text-white/60">
+        Here you can update your email address, phone number, and password. Keep them up to date so
+        you don&apos;t miss your reminders.
       </p>
 
-      {error && <p className="text-red-300 text-sm text-center mt-4">{error}</p>}
+      {error && <p className="mt-4 text-center text-sm text-red-300">{error}</p>}
 
-      <div className="dashboard-card p-6 mt-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="dashboard-card mt-6 p-6">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
               <Mail size={16} className="text-white/70" />
             </span>
             <div>
               <h2 className="font-semibold">Account Information</h2>
               <p className="text-xs text-white/50">
-                {user && `Member since ${new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
+                {user &&
+                  `Member since ${new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
               </p>
             </div>
           </div>
@@ -174,32 +201,57 @@ export default function ProfilePage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={savingAvatar}
-              className="w-11 h-11 rounded-full overflow-hidden bg-white/10 border border-white/15 flex items-center justify-center disabled:opacity-50"
+              className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/10 disabled:opacity-50"
               aria-label="Change profile photo"
             >
               {user?.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.avatar} alt="Your avatar" className="w-full h-full object-cover" />
+                <img src={user.avatar} alt="Your avatar" className="h-full w-full object-cover" />
               ) : (
                 <Image src="/zoorzio-icon.png" alt="Zoorzio mascot" width={28} height={28} />
               )}
             </button>
-            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow">
+            <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow">
               <Camera size={10} className="text-[#2b1f47]" />
             </span>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
           </div>
         </div>
 
         <div className="space-y-2.5">
           <FieldRow icon={<Mail size={16} />} label="Email" value={user?.email || '—'} />
-          <FieldRow icon={<Phone size={16} />} label="Phone number" value={user?.phone || 'Not set'} onChange={handlePhoneChange} />
-          <FieldRow icon={<MapPin size={16} />} label="Location" value={user?.location || 'Not set'} />
-          <FieldRow icon={<Globe size={16} />} label="Language" value={user?.language || 'en'} onChange={handleLanguageChange} />
-          <FieldRow icon={<Bell size={16} />} label="Notification Channel" value={notificationChannelLabel} onChange={handleCycleNotificationChannel} />
+          <FieldRow
+            icon={<Phone size={16} />}
+            label="Phone number"
+            value={user?.phone || 'Not set'}
+            onChange={handlePhoneChange}
+          />
+          <FieldRow
+            icon={<MapPin size={16} />}
+            label="Location"
+            value={user?.location || 'Not set'}
+          />
+          <FieldRow
+            icon={<Globe size={16} />}
+            label="Language"
+            value={user?.language || 'en'}
+            onChange={handleLanguageChange}
+          />
+          <FieldRow
+            icon={<Bell size={16} />}
+            label="Notification Channel"
+            value={notificationChannelLabel}
+            onChange={handleCycleNotificationChannel}
+          />
 
-          <div className="bg-white/5 rounded-2xl px-4 py-3">
-            <div className="flex items-center gap-3 mb-2">
+          <div className="rounded-2xl bg-white/5 px-4 py-3">
+            <div className="mb-2 flex items-center gap-3">
               <Sparkles size={16} className="text-white/50" />
               <span className="text-xs text-white/50">Personality</span>
             </div>
@@ -209,7 +261,11 @@ export default function ProfilePage() {
                   key={p.value}
                   disabled={savingTone}
                   onClick={() => handlePersonalityChange(p.value)}
-                  className={p.value === preferences?.aiTone ? 'dashboard-pill active text-xs py-1.5 px-3' : 'dashboard-pill text-xs py-1.5 px-3'}
+                  className={
+                    p.value === preferences?.aiTone
+                      ? 'dashboard-pill active px-3 py-1.5 text-xs'
+                      : 'dashboard-pill px-3 py-1.5 text-xs'
+                  }
                 >
                   {p.label}
                 </button>
@@ -217,9 +273,12 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <Link href="/forgot-password" className="flex items-center justify-between bg-white/5 rounded-2xl px-4 py-3 hover:bg-white/10 transition-colors">
+          <Link
+            href="/forgot-password"
+            className="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3 transition-colors hover:bg-white/10"
+          >
             <span className="text-sm">Password</span>
-            <span className="text-xs font-semibold bg-white/10 px-3 py-1 rounded-full">Change</span>
+            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">Change</span>
           </Link>
         </div>
       </div>
@@ -228,16 +287,24 @@ export default function ProfilePage() {
         <ChannelLinkPanel />
       </div>
 
-      <div className="dashboard-card p-6 mt-4">
-        <h2 className="font-semibold mb-4">Subscription Details</h2>
+      <div className="mt-4">
+        <ChannelCredentialPanel />
+      </div>
+
+      <div className="dashboard-card mt-4 p-6">
+        <h2 className="mb-4 font-semibold">Subscription Details</h2>
         {subscription ? (
           <>
-            <div className="bg-white/5 rounded-2xl px-4 py-3 flex items-center justify-between mb-3">
+            <div className="mb-3 flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3">
               <div>
-                <p className="font-semibold text-sm">{subscription.plan.name}</p>
-                <p className="text-xs text-white/50">${(subscription.plan.priceCents / 100).toFixed(2)}/mo · Monthly plan</p>
+                <p className="text-sm font-semibold">{subscription.plan.name}</p>
+                <p className="text-xs text-white/50">
+                  ${(subscription.plan.priceCents / 100).toFixed(2)}/mo · Monthly plan
+                </p>
               </div>
-              <span className="dashboard-pill text-xs py-1 px-3 cursor-default">{subscription.status}</span>
+              <span className="dashboard-pill cursor-default px-3 py-1 text-xs">
+                {subscription.status}
+              </span>
             </div>
             <div className="flex gap-3">
               <Link href="/pricing" className="dashboard-pill flex-1 text-center">
@@ -249,32 +316,43 @@ export default function ProfilePage() {
             </div>
           </>
         ) : (
-          <div className="text-center py-2">
-            <p className="text-white/60 text-sm mb-4">You don&apos;t have an active plan yet.</p>
+          <div className="py-2 text-center">
+            <p className="mb-4 text-sm text-white/60">You don&apos;t have an active plan yet.</p>
             <Link href="/pricing" className="dashboard-pill-primary inline-flex px-6">
               View plans
             </Link>
           </div>
         )}
-        <p className="text-center text-xs text-white/40 mt-4">Need help? support@zoorzio.ai</p>
+        <p className="mt-4 text-center text-xs text-white/40">Need help? support@zoorzio.ai</p>
       </div>
 
       {subscription && (
-        <div className="dashboard-card p-5 mt-4">
-          <button onClick={() => setShowCancel((v) => !v)} className="w-full flex items-center justify-between text-sm font-semibold">
+        <div className="dashboard-card mt-4 p-5">
+          <button
+            onClick={() => setShowCancel((v) => !v)}
+            className="flex w-full items-center justify-between text-sm font-semibold"
+          >
             <span>
               Danger zone
-              <span className="block text-xs font-normal text-white/50">Manage subscription cancellation</span>
+              <span className="block text-xs font-normal text-white/50">
+                Manage subscription cancellation
+              </span>
             </span>
-            <ChevronDown size={16} className={showCancel ? 'rotate-180 transition-transform' : 'transition-transform'} />
+            <ChevronDown
+              size={16}
+              className={showCancel ? 'rotate-180 transition-transform' : 'transition-transform'}
+            />
           </button>
           {showCancel && (
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-xs text-white/50 mb-3">Your benefits will end at the close of this billing period; access continues until then.</p>
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <p className="mb-3 text-xs text-white/50">
+                Your benefits will end at the close of this billing period; access continues until
+                then.
+              </p>
               <button
                 onClick={handleCancel}
                 disabled={canceling}
-                className="w-full text-sm font-semibold bg-red-500/20 hover:bg-red-500/30 transition-colors rounded-full py-2.5 disabled:opacity-50"
+                className="w-full rounded-full bg-red-500/20 py-2.5 text-sm font-semibold transition-colors hover:bg-red-500/30 disabled:opacity-50"
               >
                 {canceling ? 'Canceling…' : 'Cancel subscription'}
               </button>
@@ -283,9 +361,9 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="dashboard-card p-6 mt-4 text-center">
-        <p className="font-semibold mb-1">End session</p>
-        <p className="text-xs text-white/50 mb-4">Finish your session safely from this device.</p>
+      <div className="dashboard-card mt-4 p-6 text-center">
+        <p className="mb-1 font-semibold">End session</p>
+        <p className="mb-4 text-xs text-white/50">Finish your session safely from this device.</p>
         <button onClick={handleLogout} className="dashboard-pill-primary inline-flex">
           <LogOut size={16} /> Sign out
         </button>
@@ -294,16 +372,29 @@ export default function ProfilePage() {
   );
 }
 
-function FieldRow({ icon, label, value, onChange }: { icon: React.ReactNode; label: string; value: string; onChange?: () => void }) {
+function FieldRow({
+  icon,
+  label,
+  value,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onChange?: () => void;
+}) {
   return (
-    <div className="bg-white/5 rounded-2xl px-4 py-3 flex items-center gap-3">
+    <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">
       <span className="text-white/50">{icon}</span>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-xs text-white/50">{label}</p>
-        <p className="text-sm font-medium truncate">{value}</p>
+        <p className="truncate text-sm font-medium">{value}</p>
       </div>
       {onChange && (
-        <button onClick={onChange} className="text-xs font-semibold bg-white/10 hover:bg-white/15 px-3 py-1 rounded-full transition-colors shrink-0">
+        <button
+          onClick={onChange}
+          className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold transition-colors hover:bg-white/15"
+        >
           Change
         </button>
       )}

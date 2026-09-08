@@ -64,6 +64,7 @@ model User {
   friendRemindersReceived FriendReminder[] @relation("FriendRemindersReceived")
   channelVerifications    ChannelVerification[]
   boards                  Board[]
+  channelCredentials      ChannelCredential[]
 
   @@map("users")
 }
@@ -553,6 +554,52 @@ model ChannelVerification {
 
   @@index([userId, channelType])
   @@map("channel_verifications")
+}
+
+// A user-supplied bot token / API key for a messaging or email platform,
+// encrypted at rest. Distinct from Channel (which represents one linked
+// external identity, e.g. one Telegram chat id) - a ChannelCredential is the
+// bot/app-level secret that the user's own Channel(s) on that platform
+// send/receive through. Lets a user "bring their own bot" instead of relying
+// on the platform-wide shared bot (see ChannelLinkingService).
+model ChannelCredential {
+  id                       String                  @id @default(cuid())
+  userId                   String
+  type                     ChannelType
+  encryptedToken           String
+  // Slack's signing secret, WhatsApp's verify token, etc - a second secret
+  // some platforms need alongside the primary token. Encrypted the same way.
+  encryptedSecondaryToken  String?
+  // Opaque, randomly generated, non-guessable routing key embedded in the
+  // per-user webhook URL (Telegram/Slack) so an inbound HTTP call can look
+  // up which user's credential to use without trusting anything
+  // platform-supplied. Null for Discord (routed by live gateway connection)
+  // and WhatsApp/Email (routed by phone_number_id / userId at send time).
+  webhookRoutingKey        String?                 @unique
+  // Non-secret identity metadata for display + routing: Telegram botUsername,
+  // Discord application id, Slack team id, SendGrid verified sender,
+  // WhatsApp phone_number_id. Never put token material here.
+  metadata                 Json                    @default("{}")
+  status                   ChannelCredentialStatus @default(PENDING)
+  lastVerifiedAt           DateTime?
+  lastError                String?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+
+  user                     User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One bot per user per platform - matches how the shared model already
+  // worked (one bot handles all a user's traffic on that platform).
+  @@unique([userId, type])
+  @@index([type, status])
+  @@map("channel_credentials")
+}
+
+enum ChannelCredentialStatus {
+  PENDING      // saved, not yet verified
+  ACTIVE       // verified working, in use
+  INVALID      // last verification/test call failed (bad token, revoked, etc.)
+  DISCONNECTED // Discord gateway dropped and gave up reconnecting, or user paused it
 }
 
 // Channel messages

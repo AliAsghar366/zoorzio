@@ -65,7 +65,10 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipAuthRetry?: boolean;
 }
 
-export async function apiFetch<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function apiFetch<T = unknown>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
   const { body, skipAuthRetry, headers, ...rest } = options;
   const accessToken = getAccessToken();
 
@@ -99,7 +102,9 @@ export async function apiFetch<T = unknown>(path: string, options: RequestOption
   const responseBody = isJson ? await response.json().catch(() => undefined) : undefined;
 
   if (!response.ok) {
-    const message = Array.isArray(responseBody?.message) ? responseBody.message.join(', ') : responseBody?.message;
+    const message = Array.isArray(responseBody?.message)
+      ? responseBody.message.join(', ')
+      : responseBody?.message;
     throw new ApiError(response.status, message || response.statusText, responseBody);
   }
 
@@ -128,7 +133,10 @@ export interface LoginResponse {
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
-  const data = await apiFetch<LoginResponse>('/auth/login', { method: 'POST', body: { email, password } });
+  const data = await apiFetch<LoginResponse>('/auth/login', {
+    method: 'POST',
+    body: { email, password },
+  });
   setTokens(data);
   return data;
 }
@@ -177,7 +185,10 @@ export async function forgotPassword(email: string): Promise<{ message: string }
   return apiFetch('/auth/forgot-password', { method: 'POST', body: { email } });
 }
 
-export async function resetPassword(token: string, newPassword: string): Promise<{ success: boolean }> {
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ success: boolean }> {
   return apiFetch('/auth/reset-password', { method: 'POST', body: { token, newPassword } });
 }
 
@@ -197,9 +208,12 @@ export async function startImpersonation(userId: string): Promise<User> {
     throw new ApiError(401, 'You must be logged in as an admin to impersonate a user');
   }
 
-  const data = await apiFetch<{ accessToken: string; user: User }>(`/admin/users/${userId}/impersonate`, {
-    method: 'POST',
-  });
+  const data = await apiFetch<{ accessToken: string; user: User }>(
+    `/admin/users/${userId}/impersonate`,
+    {
+      method: 'POST',
+    },
+  );
 
   window.sessionStorage.setItem(IMPERSONATOR_ACCESS_KEY, adminAccessToken);
   window.sessionStorage.setItem(IMPERSONATOR_REFRESH_KEY, adminRefreshToken);
@@ -349,6 +363,38 @@ export const channelsApi = {
   linkSlack: () => apiFetch<CodeLinkResult>('/channels/slack/link', { method: 'POST' }),
 };
 
+export type ChannelCredentialType = 'telegram' | 'discord' | 'slack' | 'whatsapp' | 'email';
+
+export interface ChannelCredential {
+  type: 'TELEGRAM' | 'DISCORD' | 'SLACK' | 'WHATSAPP' | 'EMAIL';
+  status: 'PENDING' | 'ACTIVE' | 'INVALID' | 'DISCONNECTED';
+  metadata: Record<string, unknown>;
+  /** Only set for platforms the user must point at us by hand (Slack). */
+  webhookUrl: string | null;
+  lastVerifiedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface SaveChannelCredentialInput {
+  token: string;
+  secondaryToken?: string;
+  fromEmail?: string;
+  phoneNumberId?: string;
+}
+
+export const channelCredentialsApi = {
+  list: () => apiFetch<ChannelCredential[]>('/channels/credentials'),
+  save: (type: ChannelCredentialType, input: SaveChannelCredentialInput) =>
+    apiFetch<ChannelCredential>(`/channels/${type}/credential`, { method: 'POST', body: input }),
+  test: (type: ChannelCredentialType) =>
+    apiFetch<{ success: boolean; error?: string }>(`/channels/${type}/credential/test`, {
+      method: 'POST',
+    }),
+  remove: (type: ChannelCredentialType) =>
+    apiFetch(`/channels/${type}/credential`, { method: 'DELETE' }),
+};
+
 export interface Board {
   id: string;
   name: string;
@@ -371,7 +417,8 @@ export const boardsApi = {
   list: () => apiFetch<Board[]>('/boards'),
   create: (name: string) => apiFetch<Board>('/boards', { method: 'POST', body: { name } }),
   get: (id: string) => apiFetch<BoardWithTasks>(`/boards/${id}`),
-  rename: (id: string, name: string) => apiFetch<Board>(`/boards/${id}`, { method: 'PUT', body: { name } }),
+  rename: (id: string, name: string) =>
+    apiFetch<Board>(`/boards/${id}`, { method: 'PUT', body: { name } }),
   remove: (id: string) => apiFetch(`/boards/${id}`, { method: 'DELETE' }),
 };
 
@@ -440,12 +487,18 @@ export const integrationsApi = {
   disconnect: (key: string) => apiFetch(`/integrations/${key}`, { method: 'DELETE' }),
   githubRepos: () => apiFetch<GitHubRepo[]>('/integrations/github/repos'),
   githubIssues: () => apiFetch<GitHubIssue[]>('/integrations/github/issues'),
-  notionSearch: (query?: string) => apiFetch<NotionPage[]>(`/integrations/notion/search${query ? `?query=${encodeURIComponent(query)}` : ''}`),
+  notionSearch: (query?: string) =>
+    apiFetch<NotionPage[]>(
+      `/integrations/notion/search${query ? `?query=${encodeURIComponent(query)}` : ''}`,
+    ),
   googleWorkspaceEmails: () => apiFetch<GmailMessage[]>('/integrations/google-workspace/emails'),
   googleWorkspaceFiles: () => apiFetch<DriveFile[]>('/integrations/google-workspace/files'),
   slackChannels: () => apiFetch<SlackChannel[]>('/integrations/slack/channels'),
   slackSend: (channelId: string, message: string) =>
-    apiFetch<{ ts: string }>('/integrations/slack/send', { method: 'POST', body: { channelId, message } }),
+    apiFetch<{ ts: string }>('/integrations/slack/send', {
+      method: 'POST',
+      body: { channelId, message },
+    }),
 };
 
 export const friendsApi = {
@@ -453,7 +506,8 @@ export const friendsApi = {
   requests: () => apiFetch<FriendRequest[]>('/friends/requests'),
   quota: () => apiFetch<FriendQuota>('/friends/quota'),
   reminders: () => apiFetch<FriendReminderReceived[]>('/friends/reminders'),
-  sendRequest: (targetEmail: string) => apiFetch('/friends/request', { method: 'POST', body: { targetEmail } }),
+  sendRequest: (targetEmail: string) =>
+    apiFetch('/friends/request', { method: 'POST', body: { targetEmail } }),
   accept: (id: string) => apiFetch(`/friends/${id}/accept`, { method: 'POST' }),
   decline: (id: string) => apiFetch(`/friends/${id}/decline`, { method: 'POST' }),
   remove: (id: string) => apiFetch(`/friends/${id}`, { method: 'DELETE' }),

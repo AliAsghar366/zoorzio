@@ -1,11 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MessageCircle, Send, Mail, Mic, Globe } from 'lucide-react';
+import { MessageCircle, Send, Mail, Mic, Globe, Hash, Slack } from 'lucide-react';
 
 const CHANNELS = [
   { icon: MessageCircle, label: 'WhatsApp', color: '#25D366', offset: 'up' as const },
   { icon: Send, label: 'Telegram', color: '#229ED9', offset: 'down' as const },
+  { icon: Hash, label: 'Discord', color: '#5865F2', offset: 'up' as const },
+  { icon: Slack, label: 'Slack', color: '#E01E5A', offset: 'down' as const },
   { icon: Mail, label: 'Email', color: '#F43F5E', offset: 'up' as const },
   { icon: Mic, label: 'Voice notes', color: '#a855f7', offset: 'down' as const },
   { icon: Globe, label: 'Web app', color: '#6366f1', offset: 'up' as const },
@@ -13,8 +15,8 @@ const CHANNELS = [
 
 export function ChannelsFlowSection() {
   return (
-    <section id="channels" className="relative py-14 sm:py-20 px-4 sm:px-6 overflow-hidden">
-      <div className="max-w-5xl mx-auto text-center">
+    <section id="channels" className="relative overflow-hidden px-4 py-14 sm:px-6 sm:py-20">
+      <div className="mx-auto max-w-5xl text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -22,15 +24,25 @@ export function ChannelsFlowSection() {
           transition={{ duration: 0.6 }}
           className="mb-20"
         >
-          <p className="text-xs font-semibold tracking-[0.14em] uppercase text-white/40 mb-4">→ Always with you</p>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">Wherever you already are</h2>
-          <p className="text-white/55 max-w-xl mx-auto leading-relaxed">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-white/40">
+            → Always with you
+          </p>
+          <h2 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Wherever you already are
+          </h2>
+          <p className="mx-auto max-w-xl leading-relaxed text-white/55">
             Text it, say it, or type it — Zoorzio listens on the channels you already use every day.
           </p>
         </motion.div>
 
-        <div className="relative flex items-center justify-between max-w-3xl mx-auto px-2">
-          <svg className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full h-24 -z-10" viewBox="0 0 500 100" preserveAspectRatio="none">
+        {/* Wraps on small screens - seven channels can't sit on one row at phone widths. */}
+        <div className="relative mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-8 px-2 sm:gap-x-8 lg:flex-nowrap lg:justify-between">
+          {/* The dashed thread assumes an evenly spaced single row, so it only shows once the row stops wrapping. */}
+          <svg
+            className="absolute inset-x-0 top-1/2 -z-10 hidden h-24 w-full -translate-y-1/2 lg:block"
+            viewBox="0 0 500 100"
+            preserveAspectRatio="none"
+          >
             <path
               d="M 20 30 Q 85 -10, 145 30 T 270 30 T 395 30 T 480 30"
               fill="none"
@@ -48,16 +60,16 @@ export function ChannelsFlowSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.55, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className={`flex flex-col items-center gap-2.5 ${c.offset === 'up' ? '-translate-y-4' : 'translate-y-4'}`}
+              className={`flex flex-col items-center gap-2.5 ${c.offset === 'up' ? 'lg:-translate-y-4' : 'lg:translate-y-4'}`}
             >
               <motion.div
                 whileHover={{ scale: 1.08 }}
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg"
+                className="flex h-12 w-12 items-center justify-center rounded-full shadow-lg sm:h-14 sm:w-14"
                 style={{ backgroundColor: c.color }}
               >
                 <c.icon size={20} className="text-white" />
               </motion.div>
-              <span className="text-xs text-white/60 whitespace-nowrap">{c.label}</span>
+              <span className="whitespace-nowrap text-xs text-white/60">{c.label}</span>
             </motion.div>
           ))}
         </div>

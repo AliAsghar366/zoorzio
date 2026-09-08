@@ -8,6 +8,7 @@ import { Navbar } from '@/components/home/Navbar';
 import { Hero } from '@/components/home/Hero';
 import { CaptureSection } from '@/components/home/CaptureSection';
 import { ChannelsFlowSection } from '@/components/home/ChannelsFlowSection';
+import { OwnBotSection } from '@/components/home/OwnBotSection';
 import { UnderstandSection } from '@/components/home/UnderstandSection';
 import { PrivacySection } from '@/components/home/PrivacySection';
 import { PricingSection } from '@/components/home/PricingSection';
@@ -37,19 +38,22 @@ export default function RootPage() {
   }, [router]);
 
   useEffect(() => {
-    api.get<Plan[]>('/plans').then(setPlans).catch(() => setPlans([]));
+    api
+      .get<Plan[]>('/plans')
+      .then(setPlans)
+      .catch(() => setPlans([]));
   }, []);
 
   if (checkingAuth) {
     return (
-      <div className="flex items-center justify-center h-screen home-cosmic-bg">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/40" />
+      <div className="home-cosmic-bg flex h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-white/40" />
       </div>
     );
   }
 
   return (
-    <div className="relative home-cosmic-bg home-noise text-white overflow-x-hidden">
+    <div className="home-cosmic-bg home-noise relative overflow-x-hidden text-white">
       <AnnouncementBar />
       <Navbar />
 
@@ -57,6 +61,7 @@ export default function RootPage() {
         <Hero />
         <CaptureSection />
         <ChannelsFlowSection />
+        <OwnBotSection />
         <UnderstandSection />
         <PrivacySection />
         <PricingSection plans={plans} />

@@ -7,9 +7,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MemoryService } from '../memory/memory.service';
 import { AIService } from '../ai/ai.service';
 import { ChannelLinkingService } from './channel-linking.service';
+import { ChannelCredentialsService } from './channel-credentials.service';
+import { ChannelType } from '@anchor/database';
 
 const GRAPH_API_VERSION = 'v19.0';
 const LINK_CODE_PATTERN = /^LINK\s+([A-Z0-9]{6})$/i;
+
+/** The pair of values every Graph API call needs, resolved per user or shared. */
+interface WhatsAppCreds {
+  accessToken: string;
+  phoneNumberId: string;
+}
 
 @Injectable()
 export class WhatsAppService {
@@ -22,7 +30,26 @@ export class WhatsAppService {
     private aiService: AIService,
     private readonly http: HttpService,
     private readonly channelLinking: ChannelLinkingService,
+    private readonly channelCredentials: ChannelCredentialsService,
   ) {}
+
+  /** The platform-wide Business account, used when a user hasn't brought their own. */
+  private get sharedCreds(): WhatsAppCreds {
+    return {
+      accessToken: this.configService.get('WHATSAPP_BUSINESS_TOKEN') ?? '',
+      phoneNumberId: this.configService.get('WHATSAPP_PHONE_NUMBER_ID') ?? '',
+    };
+  }
+
+  /** Resolves the Business account a given user sends on - their own if connected. */
+  private async credsForUser(userId: string): Promise<WhatsAppCreds> {
+    const own = await this.channelCredentials.getDecryptedToken(userId, ChannelType.WHATSAPP);
+    const ownPhoneNumberId = (own?.metadata as any)?.phoneNumberId;
+    if (own && ownPhoneNumberId) {
+      return { accessToken: own.token, phoneNumberId: ownPhoneNumberId };
+    }
+    return this.sharedCreds;
+  }
 
   async initialize() {
     try {
@@ -53,8 +80,20 @@ export class WhatsAppService {
         const { value } = change;
 
         if (value.messages) {
+          // Meta names the *recipient* Business number in every payload, which
+          // is what tells us whose account was messaged once several users have
+          // each connected their own. Falls back to the shared account so
+          // existing users on the platform bot keep working unchanged.
+          const phoneNumberId = value.metadata?.phone_number_id;
+          const own = phoneNumberId
+            ? await this.channelCredentials.getByWhatsAppPhoneNumberId(phoneNumberId)
+            : null;
+          const creds: WhatsAppCreds = own
+            ? { accessToken: own.token, phoneNumberId }
+            : this.sharedCreds;
+
           for (const message of value.messages) {
-            await this.processMessage(message, value.contacts?.[0]);
+            await this.processMessage(message, value.contacts?.[0], creds);
           }
         }
       }
@@ -63,30 +102,37 @@ export class WhatsAppService {
     return { status: 'ok' };
   }
 
-  private async processMessage(message: any, contact: any) {
+  private async processMessage(
+    message: any,
+    contact: any,
+    creds: WhatsAppCreds = this.sharedCreds,
+  ) {
     try {
       const { from, type, timestamp, id: externalId } = message;
 
       if (type === 'text') {
         const linkMatch = LINK_CODE_PATTERN.exec(message.text.body.trim());
         if (linkMatch) {
-          await this.handleLinkCode(from, linkMatch[1]);
+          await this.handleLinkCode(from, linkMatch[1], creds);
           return null;
         }
       }
 
       const channel = await this.findOrCreateChannel(from);
       if (!channel) {
-        this.logger.warn(`Ignoring WhatsApp message from unlinked number ${from} - no account has linked it yet`);
+        this.logger.warn(
+          `Ignoring WhatsApp message from unlinked number ${from} - no account has linked it yet`,
+        );
         await this.trySendMessage(
           from,
           "I don't recognize this number yet. Open Zoorzio, go to your Profile, and link your WhatsApp number first.",
+          creds,
         );
         return null;
       }
 
       let content = '';
-      let metadata: any = {
+      const metadata: any = {
         whatsappMessageId: externalId,
         timestamp,
       };
@@ -136,11 +182,17 @@ export class WhatsAppService {
       });
 
       if (type === 'audio') {
-        await this.processVoiceNote(channel.userId, memory.id, message.audio.id);
+        await this.processVoiceNote(channel.userId, memory.id, message.audio.id, creds);
       }
 
       if (type === 'image') {
-        await this.processImage(channel.userId, memory.id, message.image.id, message.image.caption);
+        await this.processImage(
+          channel.userId,
+          memory.id,
+          message.image.id,
+          message.image.caption,
+          creds,
+        );
       }
 
       this.logger.log(`Processed WhatsApp message from ${from}`);
@@ -152,20 +204,35 @@ export class WhatsAppService {
     }
   }
 
-  private async handleLinkCode(from: string, code: string) {
+  private async handleLinkCode(
+    from: string,
+    code: string,
+    creds: WhatsAppCreds = this.sharedCreds,
+  ) {
     const userId = await this.channelLinking.consumeWhatsAppLinkCode(code, from);
     if (userId) {
       this.logger.log(`Linked WhatsApp number ${from} to user ${userId}`);
-      await this.trySendMessage(from, "You're linked! I'll remember what you send me here from now on.");
+      await this.trySendMessage(
+        from,
+        "You're linked! I'll remember what you send me here from now on.",
+        creds,
+      );
     } else {
-      await this.trySendMessage(from, "That code is invalid or expired. Generate a new one from your Zoorzio Profile page.");
+      await this.trySendMessage(
+        from,
+        'That code is invalid or expired. Generate a new one from your Zoorzio Profile page.',
+        creds,
+      );
     }
   }
 
   /** Best-effort reply for control-flow messages (link confirmations, unlinked-sender notices) - never throws. */
-  private async trySendMessage(to: string, message: string) {
-    const phoneNumberId = this.configService.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = this.configService.get('WHATSAPP_BUSINESS_TOKEN');
+  private async trySendMessage(
+    to: string,
+    message: string,
+    creds: WhatsAppCreds = this.sharedCreds,
+  ) {
+    const { phoneNumberId, accessToken } = creds;
     if (!phoneNumberId || !accessToken) return;
 
     try {
@@ -182,9 +249,11 @@ export class WhatsAppService {
   }
 
   /** Looks up the temporary CDN URL Meta stores a piece of media at, then downloads it. */
-  private async downloadMedia(mediaId: string): Promise<Buffer> {
-    const accessToken = this.configService.get('WHATSAPP_BUSINESS_TOKEN');
-    const headers = { Authorization: `Bearer ${accessToken}` };
+  private async downloadMedia(
+    mediaId: string,
+    creds: WhatsAppCreds = this.sharedCreds,
+  ): Promise<Buffer> {
+    const headers = { Authorization: `Bearer ${creds.accessToken}` };
 
     const metaResponse = await firstValueFrom(
       this.http.get(`https://graph.facebook.com/${GRAPH_API_VERSION}/${mediaId}`, { headers }),
@@ -203,9 +272,14 @@ export class WhatsAppService {
     return { ...((memory?.metadata as Record<string, unknown>) || {}), ...patch };
   }
 
-  private async processVoiceNote(userId: string, memoryId: string, audioId: string) {
+  private async processVoiceNote(
+    userId: string,
+    memoryId: string,
+    audioId: string,
+    creds: WhatsAppCreds = this.sharedCreds,
+  ) {
     try {
-      const audioBuffer = await this.downloadMedia(audioId);
+      const audioBuffer = await this.downloadMedia(audioId, creds);
       const transcript = await this.aiService.transcribeAudio(audioBuffer);
       const metadata = await this.mergeMemoryMetadata(memoryId, { transcriptionPending: false });
 
@@ -215,15 +289,23 @@ export class WhatsAppService {
     }
   }
 
-  private async processImage(userId: string, memoryId: string, imageId: string, caption?: string) {
+  private async processImage(
+    userId: string,
+    memoryId: string,
+    imageId: string,
+    caption?: string,
+    creds: WhatsAppCreds = this.sharedCreds,
+  ) {
     try {
-      const accessToken = this.configService.get('WHATSAPP_BUSINESS_TOKEN');
-      const headers = { Authorization: `Bearer ${accessToken}` };
+      const headers = { Authorization: `Bearer ${creds.accessToken}` };
       const metaResponse = await firstValueFrom(
         this.http.get(`https://graph.facebook.com/${GRAPH_API_VERSION}/${imageId}`, { headers }),
       );
 
-      const { description, extractedText } = await this.aiService.describeImage(metaResponse.data.url, caption);
+      const { description, extractedText } = await this.aiService.describeImage(
+        metaResponse.data.url,
+        caption,
+      );
       const content = [caption, description, extractedText].filter(Boolean).join('\n\n');
       const metadata = await this.mergeMemoryMetadata(memoryId, {
         ocrPending: false,
@@ -231,15 +313,17 @@ export class WhatsAppService {
         extractedText,
       });
 
-      await this.memoryService.update(userId, memoryId, { content: content || '[Image received]', metadata });
+      await this.memoryService.update(userId, memoryId, {
+        content: content || '[Image received]',
+        metadata,
+      });
     } catch (error) {
       this.logger.error('Failed to process image', error);
     }
   }
 
   async sendMessage(userId: string, to: string, message: string) {
-    const phoneNumberId = this.configService.get('WHATSAPP_PHONE_NUMBER_ID');
-    const accessToken = this.configService.get('WHATSAPP_BUSINESS_TOKEN');
+    const { phoneNumberId, accessToken } = await this.credsForUser(userId);
 
     let messageId = `local_${Date.now()}`;
     try {

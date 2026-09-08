@@ -294,7 +294,7 @@ function CalendarPageInner() {
       <div className="dashboard-card p-6 mt-4">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-lg font-bold flex items-center gap-2">
-            Today's events
+            Today&apos;s events
             <Image src="/zoorzio-icon.png" alt="" width={20} height={20} />
           </h3>
           {calendars.length > 0 && (

@@ -7,6 +7,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MemoryService } from '../memory/memory.service';
 import { AIService } from '../ai/ai.service';
 import { ChannelLinkingService } from './channel-linking.service';
+import { ChannelCredentialsService } from './channel-credentials.service';
+import { ChannelType, ChannelCredentialStatus } from '@anchor/database';
 
 @Injectable()
 export class TelegramService {
@@ -19,10 +21,114 @@ export class TelegramService {
     private aiService: AIService,
     private readonly http: HttpService,
     private readonly channelLinking: ChannelLinkingService,
+    private readonly channelCredentials: ChannelCredentialsService,
   ) {}
 
+  /** Falls back to the platform-wide shared bot when a user hasn't connected their own. */
   private get botToken(): string {
     return this.configService.get<string>('TELEGRAM_BOT_TOKEN') ?? '';
+  }
+
+  private get apiBaseUrl(): string {
+    return this.configService.get<string>('API_URL') ?? '';
+  }
+
+  /** Registers (or re-registers) a per-user webhook with Telegram right after the user saves their own bot token. */
+  async registerWebhook(userId: string) {
+    const credential = await this.channelCredentials.getDecryptedToken(
+      userId,
+      ChannelType.TELEGRAM,
+    );
+    if (!credential) return;
+
+    const record = await this.prisma.channelCredential.findUnique({
+      where: { userId_type: { userId, type: ChannelType.TELEGRAM } },
+    });
+    if (!record?.webhookRoutingKey) return;
+
+    // Without a public base URL there is no valid address to hand Telegram, and
+    // a half-registered bot would look connected while silently receiving
+    // nothing - so say so plainly instead.
+    if (!this.apiBaseUrl) {
+      const message =
+        'API_URL is not configured on this server, so Telegram has nowhere to deliver messages';
+      this.logger.error(`Cannot register Telegram webhook for user ${userId}: ${message}`);
+      await this.channelCredentials.markStatus(
+        userId,
+        ChannelType.TELEGRAM,
+        ChannelCredentialStatus.INVALID,
+        message,
+      );
+      return;
+    }
+
+    try {
+      const webhookUrl = `${this.apiBaseUrl}/channels/telegram/webhook/${record.webhookRoutingKey}`;
+      const response = await firstValueFrom(
+        this.http.post(`https://api.telegram.org/bot${credential.token}/setWebhook`, {
+          url: webhookUrl,
+        }),
+      );
+
+      if (response.data?.ok) {
+        const me = await firstValueFrom(
+          this.http.get(`https://api.telegram.org/bot${credential.token}/getMe`),
+        );
+        await this.prisma.channelCredential.update({
+          where: { userId_type: { userId, type: ChannelType.TELEGRAM } },
+          data: {
+            status: ChannelCredentialStatus.ACTIVE,
+            lastVerifiedAt: new Date(),
+            lastError: null,
+            metadata: { botUsername: me.data?.result?.username ?? null },
+          },
+        });
+      } else {
+        await this.channelCredentials.markStatus(
+          userId,
+          ChannelType.TELEGRAM,
+          ChannelCredentialStatus.INVALID,
+          response.data?.description ?? 'setWebhook failed',
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to register webhook';
+      this.logger.error(`Failed to register Telegram webhook for user ${userId}: ${message}`);
+      await this.channelCredentials.markStatus(
+        userId,
+        ChannelType.TELEGRAM,
+        ChannelCredentialStatus.INVALID,
+        message,
+      );
+    }
+  }
+
+  /** Tears down the user's webhook registration with Telegram when they remove their credential. */
+  async unregisterWebhook(userId: string) {
+    const credential = await this.channelCredentials.getDecryptedToken(
+      userId,
+      ChannelType.TELEGRAM,
+    );
+    if (!credential) return;
+
+    try {
+      await firstValueFrom(
+        this.http.post(`https://api.telegram.org/bot${credential.token}/deleteWebhook`, {}),
+      );
+    } catch (error) {
+      this.logger.error(`Failed to unregister Telegram webhook for user ${userId}`, error);
+    }
+  }
+
+  /** Entry point for a per-user webhook - resolves which user's bot received this call via the opaque routing key. */
+  async handleWebhookForRoutingKey(routingKey: string, payload: any) {
+    const credential = await this.channelCredentials.getByRoutingKey(routingKey);
+    if (!credential) {
+      this.logger.warn(`Received Telegram webhook for unknown routing key`);
+      return { status: 'ok' };
+    }
+
+    return this.handleWebhook(payload, credential.token);
   }
 
   async initialize() {
@@ -41,40 +147,44 @@ export class TelegramService {
     }
   }
 
-  async handleWebhook(payload: any) {
+  /** botToken defaults to the shared platform bot; per-user webhooks pass in the resolved user's own token. */
+  async handleWebhook(payload: any, botToken: string = this.botToken) {
     const { message } = payload;
 
     if (message) {
-      await this.processMessage(message);
+      await this.processMessage(message, botToken);
     }
 
     return { status: 'ok' };
   }
 
-  private async processMessage(message: any) {
+  private async processMessage(message: any, botToken: string) {
     try {
       const { chat, from, text, date, message_id: externalId, photo, voice, document } = message;
 
       if (text?.startsWith('/start')) {
         const token = text.slice('/start'.length).trim();
         if (token) {
-          await this.handleStartToken(chat.id, token, from);
+          await this.handleStartToken(chat.id, token, from, botToken);
           return null;
         }
       }
 
       const channel = await this.findOrCreateChannel(from);
       if (!channel) {
-        this.logger.warn(`Ignoring Telegram message from unlinked chat ${from.id} - no account has linked it yet`);
+        this.logger.warn(
+          `Ignoring Telegram message from unlinked chat ${from.id} - no account has linked it yet`,
+        );
         await this.trySendMessage(
           chat.id,
           "I don't recognize you yet. Open Zoorzio, go to your Profile, and tap Connect Telegram to link this chat.",
+          botToken,
         );
         return null;
       }
 
       let content = '';
-      let metadata: any = {
+      const metadata: any = {
         telegramMessageId: externalId,
         chatId: chat.id,
         timestamp: date,
@@ -121,11 +231,16 @@ export class TelegramService {
       });
 
       if (voice) {
-        await this.processVoiceNote(channel.userId, memory.id, voice.file_id);
+        await this.processVoiceNote(channel.userId, memory.id, voice.file_id, botToken);
       }
 
       if (photo) {
-        await this.processImage(channel.userId, memory.id, photo[photo.length - 1].file_id);
+        await this.processImage(
+          channel.userId,
+          memory.id,
+          photo[photo.length - 1].file_id,
+          botToken,
+        );
       }
 
       this.logger.log(`Processed Telegram message from ${from.id}`);
@@ -137,23 +252,39 @@ export class TelegramService {
     }
   }
 
-  private async handleStartToken(chatId: number, token: string, from: any) {
-    const displayName = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username;
-    const userId = await this.channelLinking.consumeTelegramLinkToken(token, chatId.toString(), displayName);
+  private async handleStartToken(chatId: number, token: string, from: any, botToken: string) {
+    const displayName =
+      [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username;
+    const userId = await this.channelLinking.consumeTelegramLinkToken(
+      token,
+      chatId.toString(),
+      displayName,
+    );
     if (userId) {
       this.logger.log(`Linked Telegram chat ${chatId} to user ${userId}`);
-      await this.trySendMessage(chatId, "You're linked! I'll remember what you send me here from now on.");
+      await this.trySendMessage(
+        chatId,
+        "You're linked! I'll remember what you send me here from now on.",
+        botToken,
+      );
     } else {
-      await this.trySendMessage(chatId, 'That link is invalid or expired. Generate a new one from your Zoorzio Profile page.');
+      await this.trySendMessage(
+        chatId,
+        'That link is invalid or expired. Generate a new one from your Zoorzio Profile page.',
+        botToken,
+      );
     }
   }
 
   /** Best-effort reply for control-flow messages (link confirmations, unlinked-sender notices) - never throws. */
-  private async trySendMessage(chatId: number, text: string) {
-    if (!this.botToken) return;
+  private async trySendMessage(chatId: number, text: string, botToken: string = this.botToken) {
+    if (!botToken) return;
     try {
       await firstValueFrom(
-        this.http.post(`https://api.telegram.org/bot${this.botToken}/sendMessage`, { chat_id: chatId, text }),
+        this.http.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          chat_id: chatId,
+          text,
+        }),
       );
     } catch (error) {
       this.logger.error('Failed to send Telegram reply', error);
@@ -161,16 +292,16 @@ export class TelegramService {
   }
 
   /** Telegram requires a two-step lookup: fileId -> file_path -> download URL. */
-  private async downloadFile(fileId: string): Promise<Buffer> {
+  private async downloadFile(fileId: string, botToken: string = this.botToken): Promise<Buffer> {
     const fileInfo = await firstValueFrom(
-      this.http.get(`https://api.telegram.org/bot${this.botToken}/getFile`, {
+      this.http.get(`https://api.telegram.org/bot${botToken}/getFile`, {
         params: { file_id: fileId },
       }),
     );
     const filePath = fileInfo.data.result.file_path;
 
     const fileResponse = await firstValueFrom(
-      this.http.get(`https://api.telegram.org/file/bot${this.botToken}/${filePath}`, {
+      this.http.get(`https://api.telegram.org/file/bot${botToken}/${filePath}`, {
         responseType: 'arraybuffer',
       }),
     );
@@ -182,9 +313,14 @@ export class TelegramService {
     return { ...((memory?.metadata as Record<string, unknown>) || {}), ...patch };
   }
 
-  private async processVoiceNote(userId: string, memoryId: string, fileId: string) {
+  private async processVoiceNote(
+    userId: string,
+    memoryId: string,
+    fileId: string,
+    botToken: string = this.botToken,
+  ) {
     try {
-      const audioBuffer = await this.downloadFile(fileId);
+      const audioBuffer = await this.downloadFile(fileId, botToken);
       const transcript = await this.aiService.transcribeAudio(audioBuffer);
       const metadata = await this.mergeMemoryMetadata(memoryId, { transcriptionPending: false });
 
@@ -194,14 +330,19 @@ export class TelegramService {
     }
   }
 
-  private async processImage(userId: string, memoryId: string, fileId: string) {
+  private async processImage(
+    userId: string,
+    memoryId: string,
+    fileId: string,
+    botToken: string = this.botToken,
+  ) {
     try {
       const fileInfo = await firstValueFrom(
-        this.http.get(`https://api.telegram.org/bot${this.botToken}/getFile`, {
+        this.http.get(`https://api.telegram.org/bot${botToken}/getFile`, {
           params: { file_id: fileId },
         }),
       );
-      const imageUrl = `https://api.telegram.org/file/bot${this.botToken}/${fileInfo.data.result.file_path}`;
+      const imageUrl = `https://api.telegram.org/file/bot${botToken}/${fileInfo.data.result.file_path}`;
 
       const { description, extractedText } = await this.aiService.describeImage(imageUrl);
       const content = [description, extractedText].filter(Boolean).join('\n\n');
@@ -211,17 +352,26 @@ export class TelegramService {
         extractedText,
       });
 
-      await this.memoryService.update(userId, memoryId, { content: content || '[Photo received]', metadata });
+      await this.memoryService.update(userId, memoryId, {
+        content: content || '[Photo received]',
+        metadata,
+      });
     } catch (error) {
       this.logger.error('Failed to process image', error);
     }
   }
 
   async sendMessage(userId: string, chatId: number, message: string) {
+    const ownCredential = await this.channelCredentials.getDecryptedToken(
+      userId,
+      ChannelType.TELEGRAM,
+    );
+    const botToken = ownCredential?.token || this.botToken;
+
     let messageId = `local_${Date.now()}`;
     try {
       const response = await firstValueFrom(
-        this.http.post(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
+        this.http.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
           chat_id: chatId,
           text: message,
         }),

@@ -24,7 +24,18 @@ import { SmsService } from './sms.service';
 import { DiscordService } from './discord.service';
 import { SlackService } from './slack.service';
 import { ChannelLinkingService } from './channel-linking.service';
+import { ChannelCredentialsService } from './channel-credentials.service';
+import { SaveChannelCredentialDto } from './dto/save-channel-credential.dto';
 import { Public } from '../common/decorators/public.decorator';
+import { ChannelType } from '@anchor/database';
+
+const CREDENTIAL_TYPES: Record<string, ChannelType> = {
+  telegram: ChannelType.TELEGRAM,
+  discord: ChannelType.DISCORD,
+  slack: ChannelType.SLACK,
+  whatsapp: ChannelType.WHATSAPP,
+  email: ChannelType.EMAIL,
+};
 
 @ApiTags('Channels')
 @Controller('channels')
@@ -37,7 +48,124 @@ export class ChannelsController {
     private readonly discordService: DiscordService,
     private readonly slackService: SlackService,
     private readonly channelLinking: ChannelLinkingService,
+    private readonly channelCredentials: ChannelCredentialsService,
   ) {}
+
+  private resolveCredentialType(type: string): ChannelType {
+    const resolved = CREDENTIAL_TYPES[type.toLowerCase()];
+    if (!resolved) throw new ForbiddenException(`Unsupported platform: ${type}`);
+    return resolved;
+  }
+
+  // --- Per-user "bring your own bot" credentials ---
+
+  @ApiBearerAuth()
+  @Get('credentials')
+  @ApiOperation({
+    summary: 'List your own connected bot/API credentials (never returns the raw secret)',
+  })
+  @ApiResponse({ status: 200, description: 'List of saved credentials' })
+  async listCredentials(@Request() req: any) {
+    return this.channelCredentials.list(req.user.id);
+  }
+
+  @ApiBearerAuth()
+  @Post(':type/credential')
+  @ApiOperation({ summary: 'Save your own bot token/API key for a platform' })
+  @ApiResponse({ status: 201, description: 'Credential saved' })
+  async saveCredential(
+    @Request() req: any,
+    @Param('type') type: string,
+    @Body() dto: SaveChannelCredentialDto,
+  ) {
+    const channelType = this.resolveCredentialType(type);
+    const saved = await this.channelCredentials.saveCredential(req.user.id, channelType, dto);
+
+    // Bring the credential live immediately, so saving a token is all the user
+    // has to do. Telegram registers a webhook; Discord opens a Gateway socket.
+    if (channelType === ChannelType.TELEGRAM) {
+      await this.telegramService.registerWebhook(req.user.id);
+    } else if (channelType === ChannelType.DISCORD) {
+      await this.discordService.connectUserBot(req.user.id);
+    }
+
+    // Re-read so the response carries the status the connection attempt just
+    // produced (ACTIVE / INVALID), not the PENDING snapshot from before it.
+    return (await this.channelCredentials.getPublicCredential(req.user.id, channelType)) ?? saved;
+  }
+
+  @ApiBearerAuth()
+  @Post(':type/credential/test')
+  @ApiOperation({ summary: 'Test that your saved credential for a platform actually works' })
+  @ApiResponse({ status: 200, description: 'Test result' })
+  async testCredential(@Request() req: any, @Param('type') type: string) {
+    return this.channelCredentials.testCredential(req.user.id, this.resolveCredentialType(type));
+  }
+
+  @ApiBearerAuth()
+  @Delete(':type/credential')
+  @ApiOperation({ summary: 'Remove your own bot/API credential for a platform' })
+  @ApiResponse({ status: 200, description: 'Credential removed' })
+  async removeCredential(@Request() req: any, @Param('type') type: string) {
+    const channelType = this.resolveCredentialType(type);
+
+    // Tear down the live connection *before* deleting the row, so a removed
+    // credential can't keep receiving or sending after the user believes it's
+    // gone.
+    if (channelType === ChannelType.TELEGRAM) {
+      await this.telegramService.unregisterWebhook(req.user.id);
+    } else if (channelType === ChannelType.DISCORD) {
+      await this.discordService.disconnectUserBot(req.user.id);
+    }
+
+    return this.channelCredentials.removeCredential(req.user.id, channelType);
+  }
+
+  // Per-user Telegram webhook - routed by an opaque, non-guessable key rather
+  // than trusting anything in the request body, so this can't be spoofed into
+  // resolving a different user's bot.
+  @Public()
+  @Post('telegram/webhook/:routingKey')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Per-user Telegram webhook handler' })
+  @ApiResponse({ status: 200, description: 'Webhook processed' })
+  async handlePerUserTelegramWebhook(
+    @Param('routingKey') routingKey: string,
+    @Body() payload: any,
+  ) {
+    return this.telegramService.handleWebhookForRoutingKey(routingKey, payload);
+  }
+
+  // Per-user Slack Events API endpoint. Signature verification happens inside
+  // the service, against the resolved user's own signing secret - a request
+  // signed for one workspace must never validate against another's endpoint.
+  @Public()
+  @Post('slack/events/:routingKey')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Per-user Slack Events API webhook handler' })
+  @ApiResponse({ status: 200, description: 'Event processed' })
+  async handlePerUserSlackEvent(
+    @Param('routingKey') routingKey: string,
+    @Req() req: RawBodyRequest<ExpressRequest>,
+    @Body() payload: any,
+    @Headers('x-slack-request-timestamp') timestamp: string,
+    @Headers('x-slack-signature') signature: string,
+  ) {
+    const rawBody = (req.rawBody as Buffer)?.toString('utf8') ?? '';
+    const result = await this.slackService.handleEventForRoutingKey(
+      routingKey,
+      payload,
+      rawBody,
+      timestamp,
+      signature,
+    );
+
+    if (result.error === 'invalid_signature') {
+      throw new ForbiddenException('Invalid Slack signature');
+    }
+
+    return result;
+  }
 
   @ApiBearerAuth()
   @Get('linked')
@@ -146,7 +274,10 @@ export class ChannelsController {
   @Post('telegram/send')
   @ApiOperation({ summary: 'Send Telegram message' })
   @ApiResponse({ status: 200, description: 'Message sent' })
-  async sendTelegramMessage(@Request() req: any, @Body() body: { chatId: number; message: string }) {
+  async sendTelegramMessage(
+    @Request() req: any,
+    @Body() body: { chatId: number; message: string },
+  ) {
     return this.telegramService.sendMessage(req.user.id, body.chatId, body.message);
   }
 
@@ -176,7 +307,10 @@ export class ChannelsController {
   @Post('discord/send')
   @ApiOperation({ summary: 'Send a Discord DM' })
   @ApiResponse({ status: 200, description: 'Message sent' })
-  async sendDiscordMessage(@Request() req: any, @Body() body: { discordUserId: string; message: string }) {
+  async sendDiscordMessage(
+    @Request() req: any,
+    @Body() body: { discordUserId: string; message: string },
+  ) {
     return this.discordService.sendMessage(req.user.id, body.discordUserId, body.message);
   }
 
@@ -212,7 +346,10 @@ export class ChannelsController {
   @Post('slack/send')
   @ApiOperation({ summary: 'Send a Slack DM' })
   @ApiResponse({ status: 200, description: 'Message sent' })
-  async sendSlackMessage(@Request() req: any, @Body() body: { slackUserId: string; message: string }) {
+  async sendSlackMessage(
+    @Request() req: any,
+    @Body() body: { slackUserId: string; message: string },
+  ) {
     return this.slackService.sendMessage(req.user.id, body.slackUserId, body.message);
   }
 
@@ -231,8 +368,16 @@ export class ChannelsController {
   @Post('email/send')
   @ApiOperation({ summary: 'Send email' })
   @ApiResponse({ status: 200, description: 'Email sent' })
-  async sendEmail(@Request() req: any, @Body() body: { to: string; subject: string; body: string }) {
-    return this.emailService.sendEmail(req.user.id, body.to, body.subject, body.body);
+  async sendEmail(
+    @Request() req: any,
+    @Body() body: { to: string; subject: string; body: string },
+  ) {
+    // A user-initiated send, so it goes out on the user's own SendGrid key if
+    // they've connected one. System mail (password resets, briefings) stays on
+    // the platform key - see SendEmailOptions.
+    return this.emailService.sendEmail(req.user.id, body.to, body.subject, body.body, {
+      preferUserCredential: true,
+    });
   }
 
   // Health Check

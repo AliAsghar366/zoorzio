@@ -106,7 +106,7 @@ export function NotificationBell({ dark = true, align = 'right' }: { dark?: bool
           {loading ? (
             <div className="p-6 text-center text-sm text-anchor-400">Loading...</div>
           ) : notifications.length === 0 ? (
-            <div className="p-6 text-center text-sm text-anchor-400">You're all caught up.</div>
+            <div className="p-6 text-center text-sm text-anchor-400">You&apos;re all caught up.</div>
           ) : (
             <ul>
               {notifications.map((n) => (

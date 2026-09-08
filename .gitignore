@@ -121,6 +121,7 @@ jest-*.json
 # ...but Prisma migrations are source, not backups: deploy runs
 # `prisma migrate deploy`, which applies these exact files.
 !packages/database/prisma/migrations/**/*.sql
+!packages/database/supabase/*.sql
 
 # Terraform
 *.tfstate
