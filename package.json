@@ -34,7 +34,7 @@
     "migration:run": "npm run migrate:deploy --workspace=@anchor/database",
     "db:seed": "npm run seed --workspace=@anchor/database",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
-    "prepare": "husky install"
+    "prepare": "husky install || exit 0"
   },
   "dependencies": {
     "concurrently": "^8.2.2"
