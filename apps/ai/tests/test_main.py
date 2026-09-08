@@ -42,13 +42,24 @@ def test_client():
 
 def test_health_reports_openai_configuration(test_client, monkeypatch):
     monkeypatch.setattr(main, "client", None)
+    monkeypatch.setattr(main, "grok_client", None)
+    monkeypatch.setattr(main, "groq_client", None)
     response = test_client.get("/health")
     assert response.status_code == 200
     assert response.json() == {
         "status": "healthy",
         "service": "zoorzio-ai",
         "openai_configured": False,
+        "grok_configured": False,
+        "groq_configured": False,
     }
+
+
+def test_health_reports_groq_configuration(test_client, monkeypatch):
+    monkeypatch.setattr(main, "groq_client", FakeOpenAIClient({}))
+    response = test_client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["groq_configured"] is True
 
 
 def test_embeddings_without_configured_key_returns_503(test_client, monkeypatch):
@@ -99,6 +110,8 @@ def test_chat_returns_plain_text_reply(test_client, monkeypatch):
     fake_client = FakeOpenAIClient({})
     fake_client.chat = SimpleNamespace(completions=FakePlainChatCompletions())
     monkeypatch.setattr(main, "client", fake_client)
+    monkeypatch.setattr(main, "grok_client", None)
+    monkeypatch.setattr(main, "groq_client", None)
 
     response = test_client.post(
         "/chat", json={"messages": [{"role": "user", "content": "What's on my plate today?"}]}
@@ -110,6 +123,7 @@ def test_chat_returns_plain_text_reply(test_client, monkeypatch):
 def test_chat_without_configured_key_returns_503(test_client, monkeypatch):
     monkeypatch.setattr(main, "client", None)
     monkeypatch.setattr(main, "grok_client", None)
+    monkeypatch.setattr(main, "groq_client", None)
     response = test_client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}]})
     assert response.status_code == 503
 
@@ -126,6 +140,7 @@ def test_chat_prefers_grok_over_openai_when_both_configured(test_client, monkeyp
     fake_grok = FakeOpenAIClient({})
     fake_grok.chat = SimpleNamespace(completions=FakeGrokChatCompletions())
     monkeypatch.setattr(main, "grok_client", fake_grok)
+    monkeypatch.setattr(main, "groq_client", None)
     monkeypatch.setattr(main, "GROK_CHAT_MODEL", "grok-test-model")
 
     response = test_client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}]})
@@ -133,6 +148,46 @@ def test_chat_prefers_grok_over_openai_when_both_configured(test_client, monkeyp
     assert response.status_code == 200
     assert response.json()["reply"] == "Grok reply"
     assert seen_models == ["grok-test-model"]
+
+
+def test_chat_prefers_groq_over_grok_and_openai_when_all_configured(test_client, monkeypatch):
+    seen_models = []
+
+    class FakeGroqChatCompletions:
+        async def create(self, **kwargs):
+            seen_models.append(kwargs.get("model"))
+            message = SimpleNamespace(content="Groq reply", tool_calls=None)
+            return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+    fake_groq = FakeOpenAIClient({})
+    fake_groq.chat = SimpleNamespace(completions=FakeGroqChatCompletions())
+    monkeypatch.setattr(main, "groq_client", fake_groq)
+    monkeypatch.setattr(main, "grok_client", FakeOpenAIClient({}))
+    monkeypatch.setattr(main, "GROQ_CHAT_MODEL", "groq-test-model")
+
+    response = test_client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}]})
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Groq reply"
+    assert seen_models == ["groq-test-model"]
+
+
+def test_chat_falls_back_to_openai_when_groq_and_grok_not_configured(test_client, monkeypatch):
+    class FakePlainChatCompletions:
+        async def create(self, **kwargs):
+            message = SimpleNamespace(content="OpenAI reply", tool_calls=None)
+            return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+    fake_client = FakeOpenAIClient({})
+    fake_client.chat = SimpleNamespace(completions=FakePlainChatCompletions())
+    monkeypatch.setattr(main, "client", fake_client)
+    monkeypatch.setattr(main, "grok_client", None)
+    monkeypatch.setattr(main, "groq_client", None)
+
+    response = test_client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}]})
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "OpenAI reply"
 
 
 def test_chat_returns_tool_calls_when_the_model_wants_to_act(test_client, monkeypatch):
@@ -149,6 +204,7 @@ def test_chat_returns_tool_calls_when_the_model_wants_to_act(test_client, monkey
     fake_client.chat = SimpleNamespace(completions=FakeToolChatCompletions())
     monkeypatch.setattr(main, "client", fake_client)
     monkeypatch.setattr(main, "grok_client", None)
+    monkeypatch.setattr(main, "groq_client", None)
 
     response = test_client.post(
         "/chat",
@@ -184,6 +240,7 @@ def test_chat_includes_personalized_greeting_instruction_when_user_name_given(te
     fake_client.chat = SimpleNamespace(completions=FakeCapturingChatCompletions())
     monkeypatch.setattr(main, "client", fake_client)
     monkeypatch.setattr(main, "grok_client", None)
+    monkeypatch.setattr(main, "groq_client", None)
 
     test_client.post(
         "/chat",

@@ -24,8 +24,16 @@ GROK_API_KEY = os.getenv("GROK_API_KEY")
 GROK_BASE_URL = os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
 GROK_CHAT_MODEL = os.getenv("GROK_CHAT_MODEL", "grok-2-latest")
 
+# Groq (distinct from Grok/xAI above) is also OpenAI-API-compatible for chat
+# completions - same drop-in pattern. Takes priority over Grok/OpenAI for chat
+# when configured; embeddings/transcription still always use the OpenAI client.
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+GROQ_CHAT_MODEL = os.getenv("GROQ_CHAT_MODEL", "openai/gpt-oss-120b")
+
 client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 grok_client = AsyncOpenAI(api_key=GROK_API_KEY, base_url=GROK_BASE_URL) if GROK_API_KEY else None
+groq_client = AsyncOpenAI(api_key=GROQ_API_KEY, base_url=GROQ_BASE_URL) if GROQ_API_KEY else None
 
 app = FastAPI(
     title="Zoorzio AI Services",
@@ -52,18 +60,20 @@ def require_client() -> AsyncOpenAI:
 
 
 def resolve_chat_client_and_model() -> tuple[AsyncOpenAI, str]:
-    """Grok takes priority when configured; otherwise falls back to the
-    OpenAI client. Resolved fresh on every call (not cached at import time)
-    so it reflects the current state of `client`/`grok_client` - important
-    both for tests that monkeypatch `client` and for correctness if these
-    are ever reconfigured without a process restart."""
+    """Groq takes priority when configured, then Grok, then OpenAI as the
+    final fallback. Resolved fresh on every call (not cached at import time)
+    so it reflects the current state of `client`/`grok_client`/`groq_client`
+    - important both for tests that monkeypatch these and for correctness if
+    they are ever reconfigured without a process restart."""
+    if groq_client is not None:
+        return groq_client, GROQ_CHAT_MODEL
     if grok_client is not None:
         return grok_client, GROK_CHAT_MODEL
     if client is not None:
         return client, CHAT_MODEL
     raise HTTPException(
         status_code=503,
-        detail="Neither GROK_API_KEY nor OPENAI_API_KEY is configured on the AI service",
+        detail="Neither GROQ_API_KEY, GROK_API_KEY, nor OPENAI_API_KEY is configured on the AI service",
     )
 
 
@@ -193,6 +203,8 @@ async def health_check():
         "status": "healthy",
         "service": "zoorzio-ai",
         "openai_configured": client is not None,
+        "grok_configured": grok_client is not None,
+        "groq_configured": groq_client is not None,
     }
 
 
