@@ -8,6 +8,11 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
 
+# Prisma's engine binaries need OpenSSL present both to generate the correct
+# linux-musl-openssl-3.0.x engine here (see schema.prisma binaryTargets) and,
+# in the production stage below, to actually load it at runtime.
+RUN apk add --no-cache openssl
+
 # Copy workspace manifests first for better layer caching
 COPY package.json package-lock.json* ./
 COPY apps/api/package.json ./apps/api/
@@ -27,6 +32,8 @@ RUN npm run build --workspace=@anchor/api
 # Production stage
 FROM node:18-alpine AS production
 WORKDIR /app
+
+RUN apk add --no-cache openssl
 
 RUN addgroup -g 1001 -S anchor && adduser -S anchor -u 1001
 
