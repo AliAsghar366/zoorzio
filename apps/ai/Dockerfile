@@ -1,3 +1,8 @@
+# This Dockerfile must be built with the monorepo root as the build context
+# (e.g. `docker build -f apps/ai/Dockerfile .` from the repo root, which is
+# exactly what infrastructure/docker/docker-compose.yml's `context: ../../`
+# does) - matches the same convention apps/api/Dockerfile uses.
+
 # Build stage
 FROM python:3.11-slim AS builder
 
@@ -10,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY requirements.txt .
+COPY apps/ai/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Production stage
@@ -28,7 +33,7 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy source code
-COPY . .
+COPY apps/ai/ .
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash anchor
