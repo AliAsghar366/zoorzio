@@ -88,7 +88,7 @@ export function extractEmails(text: string): string[] {
 }
 
 export function extractPhoneNumbers(text: string): string[] {
-  const phoneRegex = /[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/g;
+  const phoneRegex = /[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}/g;
   return text.match(phoneRegex) || [];
 }
 

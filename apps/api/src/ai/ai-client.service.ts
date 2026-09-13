@@ -37,7 +37,9 @@ export class AiClientService {
     }
   }
 
-  embeddings(text: string): Promise<{ embedding: number[]; model: string; usage: Record<string, number> }> {
+  embeddings(
+    text: string,
+  ): Promise<{ embedding: number[]; model: string; usage: Record<string, number> }> {
     return this.post('/embeddings', { text });
   }
 
@@ -62,11 +64,16 @@ export class AiClientService {
     return this.post('/transcribe', { audio_base64: audioBase64, filename, language });
   }
 
-  sentiment(content: string): Promise<{ sentiment: string; confidence: number; emotions: string[] }> {
+  sentiment(
+    content: string,
+  ): Promise<{ sentiment: string; confidence: number; emotions: string[] }> {
     return this.post('/sentiment', { content });
   }
 
-  describeImage(imageUrl: string, caption?: string): Promise<{ description: string; extracted_text: string }> {
+  describeImage(
+    imageUrl: string,
+    caption?: string,
+  ): Promise<{ description: string; extracted_text: string }> {
     return this.post('/describe-image', { image_url: imageUrl, caption });
   }
 

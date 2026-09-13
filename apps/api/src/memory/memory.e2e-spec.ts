@@ -193,9 +193,7 @@ describe('Memory (e2e)', () => {
 
   describe('Authorization', () => {
     it('should fail without token', () => {
-      return request(app.getHttpServer())
-        .get('/memory')
-        .expect(401);
+      return request(app.getHttpServer()).get('/memory').expect(401);
     });
 
     it('should fail with invalid token', () => {

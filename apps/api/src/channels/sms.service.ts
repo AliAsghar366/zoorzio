@@ -43,12 +43,22 @@ export class SmsService {
     const channel = await this.findOrCreateChannel(from);
     if (!channel) {
       this.logger.warn(`Ignoring SMS from unlinked number ${from} - no account has linked it yet`);
-      await this.trySendMessage(from, "I don't recognize this number yet. Open Zoorzio, go to your Profile, and link your number first.");
+      await this.trySendMessage(
+        from,
+        "I don't recognize this number yet. Open Zoorzio, go to your Profile, and link your number first.",
+      );
       return;
     }
 
     await this.prisma.channelMessage.create({
-      data: { channelId: channel.id, externalId, content: text, type: 'TEXT', direction: 'INBOUND', metadata: {} },
+      data: {
+        channelId: channel.id,
+        externalId,
+        content: text,
+        type: 'TEXT',
+        direction: 'INBOUND',
+        metadata: {},
+      },
     });
 
     await this.memoryService.create(channel.userId, {
@@ -66,9 +76,15 @@ export class SmsService {
     const userId = await this.channelLinking.consumeSmsLinkCode(code, from);
     if (userId) {
       this.logger.log(`Linked SMS number ${from} to user ${userId}`);
-      await this.trySendMessage(from, "You're linked! I'll remember what you text me here from now on.");
+      await this.trySendMessage(
+        from,
+        "You're linked! I'll remember what you text me here from now on.",
+      );
     } else {
-      await this.trySendMessage(from, 'That code is invalid or expired. Generate a new one from your Zoorzio Profile page.');
+      await this.trySendMessage(
+        from,
+        'That code is invalid or expired. Generate a new one from your Zoorzio Profile page.',
+      );
     }
   }
 
@@ -83,10 +99,18 @@ export class SmsService {
   async sendMessage(userId: string, to: string, message: string) {
     const messageId = await this.sendRaw(to, message);
 
-    const channel = await this.prisma.channel.findFirst({ where: { userId, type: 'SMS', externalId: to } });
+    const channel = await this.prisma.channel.findFirst({
+      where: { userId, type: 'SMS', externalId: to },
+    });
     if (channel) {
       await this.prisma.channelMessage.create({
-        data: { channelId: channel.id, externalId: messageId, content: message, type: 'TEXT', direction: 'OUTBOUND' },
+        data: {
+          channelId: channel.id,
+          externalId: messageId,
+          content: message,
+          type: 'TEXT',
+          direction: 'OUTBOUND',
+        },
       });
     }
 
@@ -112,7 +136,9 @@ export class SmsService {
       return response.data?.sid ?? `local_${Date.now()}`;
     } catch (error) {
       const axiosError = error as AxiosError;
-      this.logger.error(`Failed to send SMS: ${axiosError?.response?.status} ${JSON.stringify(axiosError?.response?.data ?? axiosError?.message)}`);
+      this.logger.error(
+        `Failed to send SMS: ${axiosError?.response?.status} ${JSON.stringify(axiosError?.response?.data ?? axiosError?.message)}`,
+      );
       throw error;
     }
   }

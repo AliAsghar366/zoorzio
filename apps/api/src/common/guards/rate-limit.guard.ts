@@ -18,7 +18,8 @@ export const RATE_LIMIT_KEY = 'rate_limit';
  * the handler it decorated. SetMetadata is the correct NestJS primitive here
  * (same pattern as the existing @Public()/@Roles() decorators).
  */
-export const RateLimit = (limit: number, ttl: number) => SetMetadata(RATE_LIMIT_KEY, { limit, ttl });
+export const RateLimit = (limit: number, ttl: number) =>
+  SetMetadata(RATE_LIMIT_KEY, { limit, ttl });
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {

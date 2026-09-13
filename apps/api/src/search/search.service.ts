@@ -69,14 +69,14 @@ export class SearchService {
 
     // Score vector results
     vectorResults.forEach((result, index) => {
-      const score = 1 - (index / vectorResults.length);
+      const score = 1 - index / vectorResults.length;
       scoreMap.set(result.id, (scoreMap.get(result.id) || 0) + score * 0.7);
       recordMap.set(result.id, result);
     });
 
     // Score text results
     textResults.forEach((result, index) => {
-      const score = 1 - (index / textResults.length);
+      const score = 1 - index / textResults.length;
       scoreMap.set(result.id, (scoreMap.get(result.id) || 0) + score * 0.3);
       if (!recordMap.has(result.id)) recordMap.set(result.id, result);
     });

@@ -48,7 +48,10 @@ export class CreateReminderDto {
   @IsDateString()
   scheduledAt: string;
 
-  @ApiPropertyOptional({ description: 'Repeat rule; omit for a one-off reminder', type: RecurrenceDto })
+  @ApiPropertyOptional({
+    description: 'Repeat rule; omit for a one-off reminder',
+    type: RecurrenceDto,
+  })
   @IsObject()
   @ValidateNested()
   @Type(() => RecurrenceDto)

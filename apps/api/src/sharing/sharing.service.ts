@@ -11,13 +11,18 @@ export class SharingService {
     private notificationsService: NotificationsService,
   ) {}
 
-  private async assertOwnsResource(ownerId: string, resourceType: ShareResourceType, resourceId: string) {
+  private async assertOwnsResource(
+    ownerId: string,
+    resourceType: ShareResourceType,
+    resourceId: string,
+  ) {
     if (resourceType === 'LIST') {
       const list = await this.prisma.list.findUnique({ where: { id: resourceId } });
       if (!list || list.userId !== ownerId) throw new NotFoundException('List not found');
     } else {
       const reminder = await this.prisma.reminder.findUnique({ where: { id: resourceId } });
-      if (!reminder || reminder.userId !== ownerId) throw new NotFoundException('Reminder not found');
+      if (!reminder || reminder.userId !== ownerId)
+        throw new NotFoundException('Reminder not found');
     }
   }
 
@@ -51,7 +56,10 @@ export class SharingService {
       include: { sharedWith: { select: { id: true, email: true, name: true } } },
     });
 
-    const owner = await this.prisma.user.findUnique({ where: { id: ownerId }, select: { email: true, name: true } });
+    const owner = await this.prisma.user.findUnique({
+      where: { id: ownerId },
+      select: { email: true, name: true },
+    });
     await this.notificationsService.create(
       targetUser.id,
       NotificationType.SHARED_WITH_YOU,
@@ -64,7 +72,11 @@ export class SharingService {
     return share;
   }
 
-  async listSharesForResource(ownerId: string, resourceType: ShareResourceType, resourceId: string) {
+  async listSharesForResource(
+    ownerId: string,
+    resourceType: ShareResourceType,
+    resourceId: string,
+  ) {
     await this.assertOwnsResource(ownerId, resourceType, resourceId);
 
     return this.prisma.share.findMany({
@@ -101,7 +113,9 @@ export class SharingService {
           })
         : Promise.resolve([]),
       reminders.length
-        ? this.prisma.reminder.findMany({ where: { id: { in: reminders.map((s) => s.resourceId) } } })
+        ? this.prisma.reminder.findMany({
+            where: { id: { in: reminders.map((s) => s.resourceId) } },
+          })
         : Promise.resolve([]),
     ]);
 
@@ -111,7 +125,9 @@ export class SharingService {
     return shares
       .map((share) => {
         const resource =
-          share.resourceType === 'LIST' ? listById.get(share.resourceId) : reminderById.get(share.resourceId);
+          share.resourceType === 'LIST'
+            ? listById.get(share.resourceId)
+            : reminderById.get(share.resourceId);
         if (!resource) return null;
         return {
           shareId: share.id,

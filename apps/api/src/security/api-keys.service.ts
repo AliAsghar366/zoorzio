@@ -70,7 +70,10 @@ export class ApiKeysService {
     }
 
     await this.prisma.apiKey.update({ where: { id }, data: { isActive: false } });
-    await this.auditService.log(userId, 'API_KEY_REVOKED', 'api_key', { name: key.name, prefix: key.prefix });
+    await this.auditService.log(userId, 'API_KEY_REVOKED', 'api_key', {
+      name: key.name,
+      prefix: key.prefix,
+    });
 
     return { success: true };
   }

@@ -36,7 +36,15 @@ export class VectorSearchService {
     try {
       const candidates = await this.prisma.memory.findMany({
         where: { userId, isArchived: false, NOT: { embedding: { isEmpty: true } } },
-        select: { id: true, content: true, summary: true, type: true, source: true, tags: true, embedding: true },
+        select: {
+          id: true,
+          content: true,
+          summary: true,
+          type: true,
+          source: true,
+          tags: true,
+          embedding: true,
+        },
       });
 
       return candidates
@@ -60,7 +68,10 @@ export class VectorSearchService {
         return;
       }
 
-      await this.prisma.memory.update({ where: { id: memory.id }, data: { embedding: memory.embedding } });
+      await this.prisma.memory.update({
+        where: { id: memory.id },
+        data: { embedding: memory.embedding },
+      });
       this.logger.log(`Indexed memory ${memory.id}`);
     } catch (error) {
       this.logger.error('Failed to index memory', error);
@@ -75,7 +86,10 @@ export class VectorSearchService {
         return;
       }
 
-      await this.prisma.memory.update({ where: { id: memory.id }, data: { embedding: memory.embedding } });
+      await this.prisma.memory.update({
+        where: { id: memory.id },
+        data: { embedding: memory.embedding },
+      });
       this.logger.log(`Updated memory index ${memory.id}`);
     } catch (error) {
       this.logger.error('Failed to update memory index', error);

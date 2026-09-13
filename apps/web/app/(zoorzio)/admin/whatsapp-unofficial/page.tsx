@@ -70,6 +70,9 @@ export default function AdminWhatsAppUnofficialPage() {
     return () => {
       if (pollRef.current) window.clearInterval(pollRef.current);
     };
+    // Deliberately keyed on view?.status, not view - a status change is what
+    // should start/stop polling, not every qrDataUrl refresh from the poll itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checked, view?.status, fetchStatus]);
 
   const connect = async () => {

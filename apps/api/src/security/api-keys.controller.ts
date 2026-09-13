@@ -12,7 +12,9 @@ export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new API key (the raw key is only ever shown in this response)' })
+  @ApiOperation({
+    summary: 'Create a new API key (the raw key is only ever shown in this response)',
+  })
   @ApiResponse({ status: 201, description: 'API key created' })
   create(@Request() req: any, @Body() dto: CreateApiKeyDto) {
     return this.apiKeysService.create(req.user.id, dto);

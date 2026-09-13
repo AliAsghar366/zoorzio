@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEmail, MinLength, MaxLength, IsOptional, Matches, IsBoolean, Equals } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  MinLength,
+  MaxLength,
+  IsOptional,
+  Matches,
+  IsBoolean,
+  Equals,
+} from 'class-validator';
 
 // Generous enough for a compressed profile-photo data URI (roughly a 1.5MB
 // image once base64-encoded), small enough to reject someone pasting an
@@ -16,7 +25,8 @@ export class RegisterDto {
   @MinLength(8)
   @MaxLength(128)
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, {
-    message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
   })
   password: string;
 
@@ -34,7 +44,10 @@ export class RegisterDto {
   })
   phone?: string;
 
-  @ApiPropertyOptional({ description: 'City/region, shown on the profile', example: 'Karachi, Pakistan' })
+  @ApiPropertyOptional({
+    description: 'City/region, shown on the profile',
+    example: 'Karachi, Pakistan',
+  })
   @IsString()
   @MaxLength(200)
   @IsOptional()
@@ -52,7 +65,8 @@ export class RegisterDto {
   // the checkbox a real gate rather than a decoration a direct API call
   // could bypass.
   @ApiProperty({
-    description: 'Must be true - confirms the user has read and accepted the Privacy Policy. Registration is rejected otherwise.',
+    description:
+      'Must be true - confirms the user has read and accepted the Privacy Policy. Registration is rejected otherwise.',
     example: true,
   })
   @IsBoolean()

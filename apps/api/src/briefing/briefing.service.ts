@@ -92,7 +92,11 @@ export class BriefingService {
     return lines.join('\n');
   }
 
-  private formatWeeklyMessage(overdueTasks: any[], upcomingTasks: any[], upcomingEvents: any[]): string {
+  private formatWeeklyMessage(
+    overdueTasks: any[],
+    upcomingTasks: any[],
+    upcomingEvents: any[],
+  ): string {
     const lines: string[] = ['🗓️ Your weekly briefing'];
 
     if (upcomingEvents.length) {
@@ -126,7 +130,9 @@ export class BriefingService {
    */
   private async deliver(userId: string, subject: string, text: string): Promise<void> {
     const channels = await this.prisma.channel.findMany({ where: { userId, isActive: true } });
-    const messagingChannels = channels.filter((c) => c.type === 'WHATSAPP' || c.type === 'TELEGRAM');
+    const messagingChannels = channels.filter(
+      (c) => c.type === 'WHATSAPP' || c.type === 'TELEGRAM',
+    );
 
     await Promise.all(
       messagingChannels.map(async (channel) => {
@@ -149,12 +155,17 @@ export class BriefingService {
 
   private async deliverByEmail(userId: string, subject: string, text: string): Promise<void> {
     if (!this.configService.get('SENDGRID_API_KEY')) {
-      this.logger.log(`SENDGRID_API_KEY not configured - skipping email briefing for user ${userId} (demo mode)`);
+      this.logger.log(
+        `SENDGRID_API_KEY not configured - skipping email briefing for user ${userId} (demo mode)`,
+      );
       return;
     }
 
     try {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
       if (user) {
         await this.emailService.sendEmail(userId, user.email, subject, text);
       }

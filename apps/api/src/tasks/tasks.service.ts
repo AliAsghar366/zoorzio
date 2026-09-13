@@ -80,11 +80,7 @@ export class TasksService {
         },
         reminders: true,
       },
-      orderBy: [
-        { priority: 'desc' },
-        { dueDate: 'asc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }, { createdAt: 'desc' }],
       take: limit,
     });
   }

@@ -38,11 +38,7 @@ export class AuditService {
     }
   }
 
-  async getLogs(
-    userId: string,
-    limit: number = 100,
-    offset: number = 0,
-  ): Promise<any[]> {
+  async getLogs(userId: string, limit: number = 100, offset: number = 0): Promise<any[]> {
     try {
       return await this.prisma.auditLog.findMany({
         where: { userId },
@@ -71,11 +67,7 @@ export class AuditService {
     }
   }
 
-  async getLogsByAction(
-    userId: string,
-    action: string,
-    limit: number = 100,
-  ): Promise<any[]> {
+  async getLogsByAction(userId: string, action: string, limit: number = 100): Promise<any[]> {
     try {
       return await this.prisma.auditLog.findMany({
         where: {
@@ -91,11 +83,7 @@ export class AuditService {
     }
   }
 
-  async getLogsByResource(
-    userId: string,
-    resource: string,
-    limit: number = 100,
-  ): Promise<any[]> {
+  async getLogsByResource(userId: string, resource: string, limit: number = 100): Promise<any[]> {
     try {
       return await this.prisma.auditLog.findMany({
         where: {
@@ -204,9 +192,13 @@ export class AuditService {
     cutoff.setDate(cutoff.getDate() - retentionDays);
 
     try {
-      const result = await this.prisma.auditLog.deleteMany({ where: { createdAt: { lt: cutoff } } });
+      const result = await this.prisma.auditLog.deleteMany({
+        where: { createdAt: { lt: cutoff } },
+      });
       if (result.count > 0) {
-        this.logger.log(`Purged ${result.count} audit log entries older than ${retentionDays} days`);
+        this.logger.log(
+          `Purged ${result.count} audit log entries older than ${retentionDays} days`,
+        );
       }
     } catch (error) {
       this.logger.error('Failed to purge old audit logs', error);

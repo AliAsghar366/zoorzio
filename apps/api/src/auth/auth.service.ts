@@ -290,7 +290,9 @@ export class AuthService {
     } else {
       // No email provider configured yet - log the link so the flow is still
       // testable end-to-end (same "demo mode" pattern as Stripe billing).
-      this.logger.warn(`SENDGRID_API_KEY not configured - password reset link for ${email}: ${resetLink}`);
+      this.logger.warn(
+        `SENDGRID_API_KEY not configured - password reset link for ${email}: ${resetLink}`,
+      );
     }
 
     return genericResponse;
@@ -313,7 +315,10 @@ export class AuthService {
 
     await this.prisma.$transaction([
       this.prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash } }),
-      this.prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { usedAt: new Date() } }),
+      this.prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { usedAt: new Date() },
+      }),
       // Reset means "I may have lost control of this account" - sign it out everywhere.
       this.prisma.session.deleteMany({ where: { userId: resetToken.userId } }),
     ]);
@@ -352,7 +357,12 @@ export class AuthService {
 
     return {
       accessToken,
-      user: { id: targetUser.id, email: targetUser.email, name: targetUser.name, role: targetUser.role },
+      user: {
+        id: targetUser.id,
+        email: targetUser.email,
+        name: targetUser.name,
+        role: targetUser.role,
+      },
     };
   }
 

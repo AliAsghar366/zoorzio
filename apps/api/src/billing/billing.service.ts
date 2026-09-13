@@ -57,7 +57,10 @@ export class BillingService {
         customer_email: existing?.stripeCustomerId ? undefined : user.email,
         customer: existing?.stripeCustomerId || undefined,
         line_items: [{ price: plan.stripePriceId, quantity: 1 }],
-        success_url: this.configService.get('STRIPE_SUCCESS_URL', 'http://localhost:3000/settings?billing=success'),
+        success_url: this.configService.get(
+          'STRIPE_SUCCESS_URL',
+          'http://localhost:3000/settings?billing=success',
+        ),
         cancel_url: this.configService.get('STRIPE_CANCEL_URL', 'http://localhost:3000/pricing'),
         metadata: { userId, planId },
       });
@@ -98,7 +101,10 @@ export class BillingService {
    * Verifies and applies a Stripe webhook event. Until STRIPE_WEBHOOK_SECRET
    * is configured (i.e. no merchant account yet), this is a no-op stub.
    */
-  async handleWebhook(rawBody: Buffer, signature: string | undefined): Promise<{ received: boolean }> {
+  async handleWebhook(
+    rawBody: Buffer,
+    signature: string | undefined,
+  ): Promise<{ received: boolean }> {
     const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!this.stripe || !webhookSecret) {
       this.logger.warn('Received Stripe webhook but Stripe is not configured yet - ignoring');
@@ -116,7 +122,12 @@ export class BillingService {
           await this.prisma.subscription.updateMany({
             where: { userId },
             data: {
-              status: sub.status === 'active' ? 'ACTIVE' : sub.status === 'past_due' ? 'PAST_DUE' : 'CANCELED',
+              status:
+                sub.status === 'active'
+                  ? 'ACTIVE'
+                  : sub.status === 'past_due'
+                    ? 'PAST_DUE'
+                    : 'CANCELED',
               stripeSubscriptionId: sub.id,
               currentPeriodEnd: new Date(sub.current_period_end * 1000),
             },

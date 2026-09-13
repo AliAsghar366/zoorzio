@@ -45,7 +45,11 @@ export class AppleCalendarService {
     }
   }
 
-  async listEvents(credentials: AppleCredentials, calendarUrl: string, since: Date): Promise<any[]> {
+  async listEvents(
+    credentials: AppleCredentials,
+    calendarUrl: string,
+    since: Date,
+  ): Promise<any[]> {
     try {
       const client = await this.client(credentials);
       const objects = await client.fetchCalendarObjects({
@@ -78,7 +82,11 @@ export class AppleCalendarService {
     }
   }
 
-  async createEvent(credentials: AppleCredentials, calendarUrl: string, eventData: any): Promise<any> {
+  async createEvent(
+    credentials: AppleCredentials,
+    calendarUrl: string,
+    eventData: any,
+  ): Promise<any> {
     try {
       const client = await this.client(credentials);
       const uid = randomUUID();
@@ -97,7 +105,11 @@ export class AppleCalendarService {
     }
   }
 
-  async deleteEvent(credentials: AppleCredentials, _calendarUrl: string, eventUrl: string): Promise<void> {
+  async deleteEvent(
+    credentials: AppleCredentials,
+    _calendarUrl: string,
+    eventUrl: string,
+  ): Promise<void> {
     try {
       const client = await this.client(credentials);
       await client.deleteCalendarObject({ calendarObject: { url: eventUrl, etag: '' } });
@@ -136,5 +148,9 @@ export class AppleCalendarService {
 }
 
 function escapeIcsText(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n');
 }

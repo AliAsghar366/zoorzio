@@ -25,7 +25,12 @@ export function hmacSign(data: string, secret: string, algorithm: string = 'sha2
   return crypto.createHmac(algorithm, secret).update(data).digest('hex');
 }
 
-export function hmacVerify(data: string, signature: string, secret: string, algorithm: string = 'sha256'): boolean {
+export function hmacVerify(
+  data: string,
+  signature: string,
+  secret: string,
+  algorithm: string = 'sha256',
+): boolean {
   const expectedSignature = hmacSign(data, secret, algorithm);
   return crypto.timingSafeEqual(
     Buffer.from(signature, 'hex'),
@@ -37,7 +42,12 @@ export function generateSalt(length: number = 16): string {
   return crypto.randomBytes(length).toString('hex');
 }
 
-export function deriveKey(password: string, salt: string, iterations: number = 10000, keyLength: number = 64): string {
+export function deriveKey(
+  password: string,
+  salt: string,
+  iterations: number = 10000,
+  keyLength: number = 64,
+): string {
   return crypto.pbkdf2Sync(password, salt, iterations, keyLength, 'sha512').toString('hex');
 }
 
@@ -45,7 +55,11 @@ export function generateIV(length: number = 16): Buffer {
   return crypto.randomBytes(length);
 }
 
-export function encrypt_aes256(data: string, key: string, iv: Buffer): { encrypted: string; authTag: string } {
+export function encrypt_aes256(
+  data: string,
+  key: string,
+  iv: Buffer,
+): { encrypted: string; authTag: string } {
   const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(key, 'hex'), iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -53,7 +67,12 @@ export function encrypt_aes256(data: string, key: string, iv: Buffer): { encrypt
   return { encrypted, authTag };
 }
 
-export function decrypt_aes256(encryptedData: string, key: string, iv: Buffer, authTag: string): string {
+export function decrypt_aes256(
+  encryptedData: string,
+  key: string,
+  iv: Buffer,
+  authTag: string,
+): string {
   const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(key, 'hex'), iv);
   decipher.setAuthTag(Buffer.from(authTag, 'hex'));
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');

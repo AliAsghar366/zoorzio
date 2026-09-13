@@ -22,7 +22,11 @@ export class CreateTaskDto {
   @IsOptional()
   dueDate?: string;
 
-  @ApiPropertyOptional({ description: 'Priority', enum: TaskPriority, default: TaskPriority.MEDIUM })
+  @ApiPropertyOptional({
+    description: 'Priority',
+    enum: TaskPriority,
+    default: TaskPriority.MEDIUM,
+  })
   @IsEnum(TaskPriority)
   @IsOptional()
   priority?: TaskPriority;
@@ -32,7 +36,9 @@ export class CreateTaskDto {
   @IsOptional()
   memoryId?: string;
 
-  @ApiPropertyOptional({ description: 'Board to add this task to - defaults to your first/default board if omitted' })
+  @ApiPropertyOptional({
+    description: 'Board to add this task to - defaults to your first/default board if omitted',
+  })
   @IsString()
   @IsOptional()
   boardId?: string;

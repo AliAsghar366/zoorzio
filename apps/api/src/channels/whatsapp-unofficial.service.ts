@@ -61,7 +61,9 @@ export class WhatsAppUnofficialService implements OnModuleInit {
 
   /** Resumes an already-paired session on boot; a session with no stored creds waits for an explicit Connect. */
   async onModuleInit(): Promise<void> {
-    const session = await this.prisma.whatsAppUnofficialSession.findUnique({ where: { id: SESSION_ID } });
+    const session = await this.prisma.whatsAppUnofficialSession.findUnique({
+      where: { id: SESSION_ID },
+    });
     if (session && session.status !== WhatsAppUnofficialStatus.DISCONNECTED) {
       this.logger.log('Resuming a previously linked WhatsApp session.');
       await this.connect();
@@ -86,7 +88,9 @@ export class WhatsAppUnofficialService implements OnModuleInit {
 
   /** True once actually paired - the only state in which sends will succeed. */
   async isConnected(): Promise<boolean> {
-    const session = await this.prisma.whatsAppUnofficialSession.findUnique({ where: { id: SESSION_ID } });
+    const session = await this.prisma.whatsAppUnofficialSession.findUnique({
+      where: { id: SESSION_ID },
+    });
     return session?.status === WhatsAppUnofficialStatus.CONNECTED && this.sock !== null;
   }
 
@@ -116,7 +120,10 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     } catch (error: any) {
       this.logger.error('Failed to start the WhatsApp connection', error);
       this.sock = null;
-      await this.setStatus(WhatsAppUnofficialStatus.DISCONNECTED, error?.message ?? 'unknown error');
+      await this.setStatus(
+        WhatsAppUnofficialStatus.DISCONNECTED,
+        error?.message ?? 'unknown error',
+      );
     } finally {
       this.connecting = false;
     }
@@ -136,8 +143,16 @@ export class WhatsAppUnofficialService implements OnModuleInit {
       await clearAll();
       await this.prisma.whatsAppUnofficialSession.upsert({
         where: { id: SESSION_ID },
-        create: { id: SESSION_ID, status: WhatsAppUnofficialStatus.DISCONNECTED, connectedNumber: null },
-        update: { status: WhatsAppUnofficialStatus.DISCONNECTED, connectedNumber: null, lastError: null },
+        create: {
+          id: SESSION_ID,
+          status: WhatsAppUnofficialStatus.DISCONNECTED,
+          connectedNumber: null,
+        },
+        update: {
+          status: WhatsAppUnofficialStatus.DISCONNECTED,
+          connectedNumber: null,
+          lastError: null,
+        },
       });
       this.loggingOut = false;
     }
@@ -211,7 +226,11 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     return true;
   }
 
-  async sendMessage(_userId: string, to: string, message: string): Promise<{ success: boolean; messageId: string }> {
+  async sendMessage(
+    _userId: string,
+    to: string,
+    message: string,
+  ): Promise<{ success: boolean; messageId: string }> {
     const jid = jidFor(to);
     const sent = await this.requireSocket().sendMessage(jid, { text: message });
 
@@ -268,7 +287,9 @@ export class WhatsAppUnofficialService implements OnModuleInit {
 
   private requireSocket(): WASocket {
     if (!this.sock) {
-      throw new Error('The unofficial WhatsApp connection is not linked - scan the QR code from the admin page first.');
+      throw new Error(
+        'The unofficial WhatsApp connection is not linked - scan the QR code from the admin page first.',
+      );
     }
     return this.sock;
   }
@@ -280,11 +301,20 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     metadata?: Record<string, unknown>,
   ): Promise<void> {
     const metadataJson = metadata as Prisma.InputJsonValue | undefined;
-    const channel = await this.prisma.channel.findFirst({ where: { type: 'WHATSAPP', externalId: to } });
+    const channel = await this.prisma.channel.findFirst({
+      where: { type: 'WHATSAPP', externalId: to },
+    });
     if (!channel) return;
 
     await this.prisma.channelMessage.create({
-      data: { channelId: channel.id, externalId, content, type: 'TEXT', direction: 'OUTBOUND', metadata: metadataJson },
+      data: {
+        channelId: channel.id,
+        externalId,
+        content,
+        type: 'TEXT',
+        direction: 'OUTBOUND',
+        metadata: metadataJson,
+      },
     });
   }
 
@@ -309,7 +339,8 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     const from = digitsOf(remoteJid);
     if (!from) return;
 
-    const text: string = message.message?.conversation ?? message.message?.extendedTextMessage?.text ?? '';
+    const text: string =
+      message.message?.conversation ?? message.message?.extendedTextMessage?.text ?? '';
     if (!message.message) return; // reactions, protocol messages, etc. - nothing to act on
 
     const linkMatch = text.trim() ? LINK_CODE_PATTERN.exec(text.trim()) : null;
@@ -318,7 +349,9 @@ export class WhatsAppUnofficialService implements OnModuleInit {
       return;
     }
 
-    const channel = await this.prisma.channel.findFirst({ where: { type: 'WHATSAPP', externalId: from } });
+    const channel = await this.prisma.channel.findFirst({
+      where: { type: 'WHATSAPP', externalId: from },
+    });
     if (!channel) {
       await this.trySend(
         from,
@@ -342,7 +375,10 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     } as any);
 
     if (!text.trim()) {
-      await this.trySend(from, "I can only read text messages on this connection right now - could you type that out?");
+      await this.trySend(
+        from,
+        'I can only read text messages on this connection right now - could you type that out?',
+      );
       return;
     }
 
@@ -369,7 +405,10 @@ export class WhatsAppUnofficialService implements OnModuleInit {
       if (reply?.trim()) await this.sendMessage(userId, from, reply);
     } catch (error) {
       this.logger.error(`Agent failed for user ${userId}`, error);
-      await this.trySend(from, "Something went wrong on my end and I couldn't finish that. Could you try again?");
+      await this.trySend(
+        from,
+        "Something went wrong on my end and I couldn't finish that. Could you try again?",
+      );
     }
   }
 
@@ -398,8 +437,13 @@ export class WhatsAppUnofficialService implements OnModuleInit {
       skip: 1, // the message just recorded is newest; the prompt being answered is the one before it
     });
 
-    const metadata = last?.metadata as { interactive?: boolean; buttons?: string[]; buttonTitles?: string[] } | null;
-    if (last?.direction !== 'OUTBOUND' || !metadata?.interactive || !metadata.buttons?.length) return null;
+    const metadata = last?.metadata as {
+      interactive?: boolean;
+      buttons?: string[];
+      buttonTitles?: string[];
+    } | null;
+    if (last?.direction !== 'OUTBOUND' || !metadata?.interactive || !metadata.buttons?.length)
+      return null;
 
     const trimmed = text.trim();
     const index = Number.parseInt(trimmed, 10) - 1;
@@ -415,7 +459,11 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   }
 
   /** Stores an inbound message, returning false if it was already stored (Baileys redelivers on reconnect). */
-  private async recordInbound(channelId: string, externalId: string, content: string): Promise<boolean> {
+  private async recordInbound(
+    channelId: string,
+    externalId: string,
+    content: string,
+  ): Promise<boolean> {
     try {
       await this.prisma.channelMessage.create({
         data: { channelId, externalId, content, type: 'TEXT', direction: 'INBOUND' },
@@ -449,7 +497,13 @@ function jidFor(phoneNumber: string): string {
 }
 
 function dominantMessageType(message: Record<string, unknown>): string {
-  const known = ['imageMessage', 'videoMessage', 'audioMessage', 'documentMessage', 'stickerMessage'];
+  const known = [
+    'imageMessage',
+    'videoMessage',
+    'audioMessage',
+    'documentMessage',
+    'stickerMessage',
+  ];
   const found = known.find((key) => key in message);
   return found ? found.replace('Message', '') : 'unsupported';
 }

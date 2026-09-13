@@ -18,14 +18,20 @@ export class WhatsAppUnofficialController {
   constructor(private readonly service: WhatsAppUnofficialService) {}
 
   @Get()
-  @ApiOperation({ summary: '[Admin] Status of the unofficial QR-linked WhatsApp connection, including the QR code while pairing' })
+  @ApiOperation({
+    summary:
+      '[Admin] Status of the unofficial QR-linked WhatsApp connection, including the QR code while pairing',
+  })
   @ApiResponse({ status: 200, description: 'Connection status' })
   getStatus() {
     return this.service.getStatus();
   }
 
   @Post('connect')
-  @ApiOperation({ summary: '[Admin] Start pairing (or resume an existing session) - poll GET status for the QR code' })
+  @ApiOperation({
+    summary:
+      '[Admin] Start pairing (or resume an existing session) - poll GET status for the QR code',
+  })
   @ApiResponse({ status: 201, description: 'Pairing started' })
   async connect() {
     await this.service.connect();

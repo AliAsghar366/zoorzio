@@ -29,17 +29,24 @@ export class SuspiciousInputInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<Request>();
     const payload = { body: request.body, query: request.query, params: request.params };
     const hasPayload =
-      payload.body || Object.keys(payload.query || {}).length || Object.keys(payload.params || {}).length;
+      payload.body ||
+      Object.keys(payload.query || {}).length ||
+      Object.keys(payload.params || {}).length;
 
     if (hasPayload && !this.securityService.validateRequest(payload)) {
       const userId = (request as any).user?.id;
 
       if (userId) {
         this.auditService
-          .log(userId, 'SUSPICIOUS_INPUT_DETECTED', request.path, { method: request.method, ip: request.ip })
+          .log(userId, 'SUSPICIOUS_INPUT_DETECTED', request.path, {
+            method: request.method,
+            ip: request.ip,
+          })
           .catch(() => undefined);
       } else {
-        this.logger.warn(`Suspicious input on ${request.method} ${request.path} from ${request.ip}`);
+        this.logger.warn(
+          `Suspicious input on ${request.method} ${request.path} from ${request.ip}`,
+        );
       }
     }
 

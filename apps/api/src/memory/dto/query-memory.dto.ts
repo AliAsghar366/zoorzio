@@ -5,7 +5,8 @@ import { MemoryType, ChannelType } from './create-memory.dto';
 
 export class QueryMemoryDto {
   @ApiPropertyOptional({
-    description: 'Filter by review status: "true" for kept/verified memories, "false" for the cleanup queue',
+    description:
+      'Filter by review status: "true" for kept/verified memories, "false" for the cleanup queue',
     enum: ['true', 'false'],
   })
   @IsIn(['true', 'false'])
@@ -33,7 +34,12 @@ export class QueryMemoryDto {
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Max results per page', default: 20, minimum: 1, maximum: 100 })
+  @ApiPropertyOptional({
+    description: 'Max results per page',
+    default: 20,
+    minimum: 1,
+    maximum: 100,
+  })
   @IsNumber()
   @Min(1)
   @Max(100)

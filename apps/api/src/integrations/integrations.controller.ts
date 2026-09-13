@@ -1,4 +1,15 @@
-import { BadRequestException, Body, Controller, Get, Post, Delete, Param, Query, Request, Res } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Query,
+  Request,
+  Res,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
@@ -69,16 +80,26 @@ export class IntegrationsController {
   @Get('google-workspace/emails')
   @ApiOperation({ summary: 'List recent Gmail messages for the connected account' })
   async googleWorkspaceEmails(@Request() req: any) {
-    const token = await this.integrationsService.getValidAccessToken(req.user.id, 'google_workspace');
-    return this.runProviderCall('Google Workspace', () => this.googleWorkspaceApi.listRecentEmails(token));
+    const token = await this.integrationsService.getValidAccessToken(
+      req.user.id,
+      'google_workspace',
+    );
+    return this.runProviderCall('Google Workspace', () =>
+      this.googleWorkspaceApi.listRecentEmails(token),
+    );
   }
 
   @ApiBearerAuth()
   @Get('google-workspace/files')
   @ApiOperation({ summary: 'List recently modified Google Drive files for the connected account' })
   async googleWorkspaceFiles(@Request() req: any) {
-    const token = await this.integrationsService.getValidAccessToken(req.user.id, 'google_workspace');
-    return this.runProviderCall('Google Workspace', () => this.googleWorkspaceApi.listRecentFiles(token));
+    const token = await this.integrationsService.getValidAccessToken(
+      req.user.id,
+      'google_workspace',
+    );
+    return this.runProviderCall('Google Workspace', () =>
+      this.googleWorkspaceApi.listRecentFiles(token),
+    );
   }
 
   @ApiBearerAuth()
@@ -94,7 +115,9 @@ export class IntegrationsController {
   @ApiOperation({ summary: 'Post a message to a channel in the connected Slack workspace' })
   async slackSend(@Request() req: any, @Body() body: { channelId: string; message: string }) {
     const token = await this.integrationsService.getValidAccessToken(req.user.id, 'slack');
-    return this.runProviderCall('Slack', () => this.slackTeamApi.postMessage(token, body.channelId, body.message));
+    return this.runProviderCall('Slack', () =>
+      this.slackTeamApi.postMessage(token, body.channelId, body.message),
+    );
   }
 
   /**
@@ -109,7 +132,9 @@ export class IntegrationsController {
       if (error instanceof BadRequestException) throw error;
       const status = error?.response?.status;
       if (status === 401 || status === 403) {
-        throw new BadRequestException(`Your ${providerLabel} connection has expired or was revoked. Please reconnect it.`);
+        throw new BadRequestException(
+          `Your ${providerLabel} connection has expired or was revoked. Please reconnect it.`,
+        );
       }
       throw error;
     }
@@ -129,12 +154,20 @@ export class IntegrationsController {
     const p = this.assertValidProvider(provider);
 
     if (error) {
-      return res.redirect(`${frontendUrl}/integrations?provider=${p}&status=error&message=${encodeURIComponent(error)}`);
+      return res.redirect(
+        `${frontendUrl}/integrations?provider=${p}&status=error&message=${encodeURIComponent(error)}`,
+      );
     }
     try {
       const { userId } = this.oauthService.verifyState(state);
       const tokens = await this.oauthService.exchangeCode(p, code);
-      await this.integrationsService.connectOAuth(userId, p, tokens.accessToken, tokens.refreshToken, tokens.expiresIn);
+      await this.integrationsService.connectOAuth(
+        userId,
+        p,
+        tokens.accessToken,
+        tokens.refreshToken,
+        tokens.expiresIn,
+      );
       return res.redirect(`${frontendUrl}/integrations?provider=${p}&status=connected`);
     } catch (err: any) {
       return res.redirect(

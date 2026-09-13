@@ -22,9 +22,7 @@ export class CorrelationIdMiddleware implements NestMiddleware {
     res.locals.correlationId = correlationId;
 
     // Log request with correlation ID
-    this.logger.log(
-      `[${correlationId}] ${req.method} ${req.url} - ${req.ip}`,
-    );
+    this.logger.log(`[${correlationId}] ${req.method} ${req.url} - ${req.ip}`);
 
     // Track response time
     const startTime = Date.now();

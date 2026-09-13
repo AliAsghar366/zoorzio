@@ -142,12 +142,12 @@ export class SecurityService {
   validateRequest(request: any): boolean {
     // Check for common attack patterns
     const suspiciousPatterns = [
-      /(\%27)|(\')|(\-\-)|(\%23)|(#)/i, // SQL injection
+      /(%27)|(')|(--)|(%23)|(#)/i, // SQL injection
       /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, // XSS
       /\.\.\//g, // Path traversal
     ];
 
     const requestString = JSON.stringify(request);
-    return !suspiciousPatterns.some(pattern => pattern.test(requestString));
+    return !suspiciousPatterns.some((pattern) => pattern.test(requestString));
   }
 }

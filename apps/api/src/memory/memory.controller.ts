@@ -50,11 +50,7 @@ export class MemoryController {
   @ApiQuery({ name: 'q', required: true, description: 'Search query' })
   @ApiQuery({ name: 'limit', required: false, description: 'Max results' })
   @ApiResponse({ status: 200, description: 'Return search results' })
-  async search(
-    @Request() req: any,
-    @Query('q') query: string,
-    @Query('limit') limit?: number,
-  ) {
+  async search(@Request() req: any, @Query('q') query: string, @Query('limit') limit?: number) {
     return this.memoryService.search(req.user.id, query, limit || 10);
   }
 

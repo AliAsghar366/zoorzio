@@ -31,7 +31,11 @@ export class SlackTeamApiService {
       if (response.data.ok === false) {
         throw new BadRequestException(response.data.error || 'Slack returned ok:false');
       }
-      return response.data.channels.map((c: any) => ({ id: c.id, name: c.name, isMember: c.is_member }));
+      return response.data.channels.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        isMember: c.is_member,
+      }));
     } catch (error) {
       this.logger.error('Failed to list Slack channels', error);
       throw error;

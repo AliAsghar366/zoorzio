@@ -1,4 +1,9 @@
-import { initAuthCreds, proto, type AuthenticationCreds, type SignalDataTypeMap } from '@whiskeysockets/baileys';
+import {
+  initAuthCreds,
+  proto,
+  type AuthenticationCreds,
+  type SignalDataTypeMap,
+} from '@whiskeysockets/baileys';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../security/encryption.service';
 
@@ -53,7 +58,9 @@ export async function useDatabaseAuthState(prisma: PrismaService, encryption: En
                 // structurally-similar plain object, or signature checks fail.
                 result[id] =
                   type === 'app-state-sync-key'
-                    ? (proto.Message.AppStateSyncKeyData.fromObject(value as object) as unknown as SignalDataTypeMap[T])
+                    ? (proto.Message.AppStateSyncKeyData.fromObject(
+                        value as object,
+                      ) as unknown as SignalDataTypeMap[T])
                     : value;
               }
             }),
@@ -82,7 +89,12 @@ export async function useDatabaseAuthState(prisma: PrismaService, encryption: En
 
 /** Buffers survive JSON.stringify as {type:'Buffer',data:[...]} - restored back into real Buffers on the way in. */
 function revive(_key: string, value: unknown): unknown {
-  if (value && typeof value === 'object' && (value as any).type === 'Buffer' && Array.isArray((value as any).data)) {
+  if (
+    value &&
+    typeof value === 'object' &&
+    (value as any).type === 'Buffer' &&
+    Array.isArray((value as any).data)
+  ) {
     return Buffer.from((value as any).data);
   }
   return value;
@@ -93,7 +105,12 @@ function replace(_key: string, value: unknown): unknown {
   if (value instanceof Uint8Array) {
     return { type: 'Buffer', data: Array.from(value) };
   }
-  if (value && typeof value === 'object' && typeof (value as any).toJSON === 'function' && !(value instanceof Date)) {
+  if (
+    value &&
+    typeof value === 'object' &&
+    typeof (value as any).toJSON === 'function' &&
+    !(value instanceof Date)
+  ) {
     return (value as any).toJSON();
   }
   return value;

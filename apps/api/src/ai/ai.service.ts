@@ -98,7 +98,10 @@ export class AIService {
     }
   }
 
-  async describeImage(imageUrl: string, caption?: string): Promise<{ description: string; extractedText: string }> {
+  async describeImage(
+    imageUrl: string,
+    caption?: string,
+  ): Promise<{ description: string; extractedText: string }> {
     try {
       const result = await this.aiClient.describeImage(imageUrl, caption);
       return { description: result.description, extractedText: result.extracted_text };
@@ -138,7 +141,9 @@ export class AIService {
       return { reply, toolCalls: tool_calls };
     } catch (error) {
       this.logger.error('Failed to generate chat reply', error);
-      return { reply: "Sorry, I'm having trouble responding right now. Please try again in a moment." };
+      return {
+        reply: "Sorry, I'm having trouble responding right now. Please try again in a moment.",
+      };
     }
   }
 }

@@ -131,9 +131,7 @@ describe('Users (e2e)', () => {
 
   describe('Authorization', () => {
     it('should fail without token', () => {
-      return request(app.getHttpServer())
-        .get('/users/me')
-        .expect(401);
+      return request(app.getHttpServer()).get('/users/me').expect(401);
     });
 
     it('should fail with invalid token', () => {

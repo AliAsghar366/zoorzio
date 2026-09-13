@@ -14,7 +14,11 @@ export class CreateMemoryDto {
   @IsOptional()
   type?: MemoryType;
 
-  @ApiPropertyOptional({ description: 'Source channel', enum: ChannelType, default: ChannelType.NATIVE_APP })
+  @ApiPropertyOptional({
+    description: 'Source channel',
+    enum: ChannelType,
+    default: ChannelType.NATIVE_APP,
+  })
   @IsEnum(ChannelType)
   @IsOptional()
   source?: ChannelType;

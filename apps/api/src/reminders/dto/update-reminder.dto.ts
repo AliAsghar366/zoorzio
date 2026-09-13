@@ -1,5 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsDateString, IsObject, ValidateNested, MinLength, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsObject,
+  ValidateNested,
+  MinLength,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { RecurrenceDto } from './create-reminder.dto';
 
@@ -22,7 +30,10 @@ export class UpdateReminderDto {
   @IsOptional()
   scheduledAt?: string;
 
-  @ApiPropertyOptional({ description: 'Repeat rule; set to null to make it one-off', type: RecurrenceDto })
+  @ApiPropertyOptional({
+    description: 'Repeat rule; set to null to make it one-off',
+    type: RecurrenceDto,
+  })
   @IsObject()
   @ValidateNested()
   @Type(() => RecurrenceDto)

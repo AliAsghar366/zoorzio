@@ -17,7 +17,12 @@ interface PlanLimits {
 // resources. So any active paid subscription is unlimited here; only users
 // with no active subscription get a free-tier cap, which is what actually
 // motivates upgrading to any paid plan.
-const UNLIMITED: PlanLimits = { lists: Infinity, reminders: Infinity, memories: Infinity, tasks: Infinity };
+const UNLIMITED: PlanLimits = {
+  lists: Infinity,
+  reminders: Infinity,
+  memories: Infinity,
+  tasks: Infinity,
+};
 const FREE_TIER_LIMITS: PlanLimits = { lists: 3, reminders: 5, memories: 10, tasks: 10 };
 
 @Injectable()
@@ -41,7 +46,9 @@ export class PlanLimitsService {
       case 'memories':
         return this.prisma.memory.count({ where: { userId, isArchived: false } });
       case 'tasks':
-        return this.prisma.task.count({ where: { userId, status: { notIn: ['COMPLETED', 'CANCELLED'] } } });
+        return this.prisma.task.count({
+          where: { userId, status: { notIn: ['COMPLETED', 'CANCELLED'] } },
+        });
     }
   }
 

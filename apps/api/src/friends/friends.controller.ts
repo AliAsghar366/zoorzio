@@ -62,7 +62,11 @@ export class FriendsController {
   @Post(':friendId/remind')
   @ApiOperation({ summary: 'Send a reminder directly to a friend' })
   @ApiResponse({ status: 201, description: 'Friend reminder sent' })
-  remind(@Request() req: any, @Param('friendId') friendId: string, @Body() dto: SendFriendReminderDto) {
+  remind(
+    @Request() req: any,
+    @Param('friendId') friendId: string,
+    @Body() dto: SendFriendReminderDto,
+  ) {
     return this.friendsService.sendFriendReminder(req.user.id, friendId, dto);
   }
 

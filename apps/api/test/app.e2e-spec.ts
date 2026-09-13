@@ -128,13 +128,11 @@ describe('AppController (e2e)', () => {
     beforeAll(async () => {
       // Register and login to get token
       const email = `memory-test-${Date.now()}@example.com`;
-      const registerRes = await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          email,
-          password: 'SecureP@ss123',
-          name: 'Memory Test User',
-        });
+      const registerRes = await request(app.getHttpServer()).post('/auth/register').send({
+        email,
+        password: 'SecureP@ss123',
+        name: 'Memory Test User',
+      });
       accessToken = registerRes.body.accessToken;
     });
 
@@ -226,13 +224,11 @@ describe('AppController (e2e)', () => {
     beforeAll(async () => {
       // Register and login to get token
       const email = `task-test-${Date.now()}@example.com`;
-      const registerRes = await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          email,
-          password: 'SecureP@ss123',
-          name: 'Task Test User',
-        });
+      const registerRes = await request(app.getHttpServer()).post('/auth/register').send({
+        email,
+        password: 'SecureP@ss123',
+        name: 'Task Test User',
+      });
       accessToken = registerRes.body.accessToken;
     });
 
@@ -302,13 +298,11 @@ describe('AppController (e2e)', () => {
     beforeAll(async () => {
       // Register and login to get token
       const email = `user-test-${Date.now()}@example.com`;
-      const registerRes = await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          email,
-          password: 'SecureP@ss123',
-          name: 'User Test User',
-        });
+      const registerRes = await request(app.getHttpServer()).post('/auth/register').send({
+        email,
+        password: 'SecureP@ss123',
+        name: 'User Test User',
+      });
       accessToken = registerRes.body.accessToken;
     });
 
@@ -363,9 +357,7 @@ describe('AppController (e2e)', () => {
 
   describe('Security', () => {
     it('Should return 401 for unauthorized requests', () => {
-      return request(app.getHttpServer())
-        .get('/memory')
-        .expect(401);
+      return request(app.getHttpServer()).get('/memory').expect(401);
     });
 
     it('Should return 401 for invalid token', () => {
@@ -389,12 +381,10 @@ describe('AppController (e2e)', () => {
 
     it('Should return 400 for invalid memory data', async () => {
       const email = `val-test-${Date.now()}@example.com`;
-      const registerRes = await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          email,
-          password: 'SecureP@ss123',
-        });
+      const registerRes = await request(app.getHttpServer()).post('/auth/register').send({
+        email,
+        password: 'SecureP@ss123',
+      });
       const token = registerRes.body.accessToken;
 
       return request(app.getHttpServer())

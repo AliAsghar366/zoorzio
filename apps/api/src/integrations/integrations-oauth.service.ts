@@ -129,24 +129,34 @@ export class IntegrationsOAuthService {
     try {
       return this.jwtService.verify<OAuthState>(token);
     } catch {
-      throw new BadRequestException('Invalid or expired connect link. Please try connecting again.');
+      throw new BadRequestException(
+        'Invalid or expired connect link. Please try connecting again.',
+      );
     }
   }
 
-  async exchangeCode(provider: IntegrationProvider, code: string): Promise<{ accessToken: string; refreshToken: string; expiresIn?: number; raw: any }> {
+  async exchangeCode(
+    provider: IntegrationProvider,
+    code: string,
+  ): Promise<{ accessToken: string; refreshToken: string; expiresIn?: number; raw: any }> {
     const cfg = this.cfg(provider);
     const clientId = this.config.get<string>(cfg.clientIdEnv)!;
     const clientSecret = this.config.get<string>(cfg.clientSecretEnv)!;
     const redirectUri = this.config.get<string>(cfg.redirectUriEnv)!;
 
-    const body: Record<string, string> = { grant_type: 'authorization_code', code, redirect_uri: redirectUri };
+    const body: Record<string, string> = {
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+    };
     const headers: Record<string, string> = {
       'Content-Type': 'application/x-www-form-urlencoded',
       Accept: 'application/json',
     };
 
     if (cfg.tokenAuth === 'basic') {
-      headers.Authorization = 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+      headers.Authorization =
+        'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     } else {
       body.client_id = clientId;
       body.client_secret = clientSecret;
@@ -169,7 +179,8 @@ export class IntegrationsOAuthService {
       return {
         accessToken,
         refreshToken: cfg.refreshTokenField ? response.data[cfg.refreshTokenField] || '' : '',
-        expiresIn: typeof response.data.expires_in === 'number' ? response.data.expires_in : undefined,
+        expiresIn:
+          typeof response.data.expires_in === 'number' ? response.data.expires_in : undefined,
         raw: response.data,
       };
     } catch (error) {
@@ -179,7 +190,9 @@ export class IntegrationsOAuthService {
   }
 
   /** Google access tokens expire hourly; exchanges the stored refresh token for a fresh one. */
-  async refreshGoogleToken(refreshToken: string): Promise<{ accessToken: string; expiresIn: number }> {
+  async refreshGoogleToken(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; expiresIn: number }> {
     const cfg = this.cfg('google_workspace');
     const body = new URLSearchParams({
       grant_type: 'refresh_token',
@@ -191,13 +204,21 @@ export class IntegrationsOAuthService {
     try {
       const response = await firstValueFrom(
         this.http.post(cfg.tokenUrl, body.toString(), {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Accept: 'application/json',
+          },
         }),
       );
-      return { accessToken: response.data.access_token, expiresIn: response.data.expires_in ?? 3600 };
+      return {
+        accessToken: response.data.access_token,
+        expiresIn: response.data.expires_in ?? 3600,
+      };
     } catch (error) {
       this.logger.error('Google token refresh failed', error);
-      throw new BadRequestException('Your Google Workspace connection expired. Please reconnect it.');
+      throw new BadRequestException(
+        'Your Google Workspace connection expired. Please reconnect it.',
+      );
     }
   }
 }

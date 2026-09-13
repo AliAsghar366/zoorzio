@@ -24,7 +24,9 @@ export async function buildAgentHistory(
   const history = rows
     .reverse()
     // Button taps are control input, not conversation, so the model never sees them.
-    .filter((row) => row.content?.trim() && !(row.metadata as Record<string, unknown> | null)?.buttonId)
+    .filter(
+      (row) => row.content?.trim() && !(row.metadata as Record<string, unknown> | null)?.buttonId,
+    )
     .map((row) => ({
       role: (row.direction === 'INBOUND' ? 'user' : 'assistant') as 'user' | 'assistant',
       content: row.content.slice(0, 4000),

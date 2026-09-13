@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Request, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@anchor/database';
@@ -33,7 +44,10 @@ export class AdminController {
   @ApiOperation({ summary: '[Admin] Platform-wide audit log (logins, password resets, etc.)' })
   @ApiResponse({ status: 200, description: 'Audit log entries' })
   getAuditLogs(@Query('limit') limit?: string, @Query('offset') offset?: string) {
-    return this.adminService.getAuditLogs(limit ? Number(limit) : undefined, offset ? Number(offset) : undefined);
+    return this.adminService.getAuditLogs(
+      limit ? Number(limit) : undefined,
+      offset ? Number(offset) : undefined,
+    );
   }
 
   @Get('audit-logs/export')
@@ -47,7 +61,10 @@ export class AdminController {
   }
 
   @Patch('users/:id/plan')
-  @ApiOperation({ summary: '[Admin] Override a user\'s plan without touching Stripe (comp account, downgrade, etc.)' })
+  @ApiOperation({
+    summary:
+      "[Admin] Override a user's plan without touching Stripe (comp account, downgrade, etc.)",
+  })
   @ApiResponse({ status: 200, description: 'Plan updated' })
   setUserPlan(@Request() req: any, @Param('id') id: string, @Body() dto: SetUserPlanDto) {
     return this.adminService.setUserPlan(req.user.id, id, dto.planId);

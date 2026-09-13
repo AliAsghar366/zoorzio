@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { FriendshipStatus, NotificationType } from '@anchor/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { RateLimitService } from '../security/rate-limit.service';
@@ -68,13 +73,21 @@ export class FriendsService {
     const friendship = existing
       ? await this.prisma.friendship.update({
           where: { id: existing.id },
-          data: { status: 'PENDING', requesterId: userId, addresseeId: targetUser.id, respondedAt: null },
+          data: {
+            status: 'PENDING',
+            requesterId: userId,
+            addresseeId: targetUser.id,
+            respondedAt: null,
+          },
         })
       : await this.prisma.friendship.create({
           data: { requesterId: userId, addresseeId: targetUser.id },
         });
 
-    const requester = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
+    const requester = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
     await this.notificationsService.create(
       targetUser.id,
       NotificationType.FRIEND_REQUEST,
@@ -105,7 +118,10 @@ export class FriendsService {
 
     return this.prisma.friendship.update({
       where: { id: friendshipId },
-      data: { status: accept ? FriendshipStatus.ACCEPTED : FriendshipStatus.DECLINED, respondedAt: new Date() },
+      data: {
+        status: accept ? FriendshipStatus.ACCEPTED : FriendshipStatus.DECLINED,
+        respondedAt: new Date(),
+      },
     });
   }
 
@@ -173,7 +189,9 @@ export class FriendsService {
       DAY_MS,
     );
     if (!withinDailyLimit) {
-      throw new ForbiddenException(`You've sent the maximum of ${MAX_FRIEND_REMINDERS_PER_DAY} friend reminders today.`);
+      throw new ForbiddenException(
+        `You've sent the maximum of ${MAX_FRIEND_REMINDERS_PER_DAY} friend reminders today.`,
+      );
     }
 
     const withinMonthlyLimit = await this.rateLimitService.checkLimit(
@@ -196,7 +214,10 @@ export class FriendsService {
       },
     });
 
-    const sender = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
+    const sender = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
     await this.notificationsService.create(
       friendId,
       NotificationType.FRIEND_REMINDER,
@@ -219,8 +240,14 @@ export class FriendsService {
 
     return {
       friends: { used: friendCount, limit: MAX_FRIENDS },
-      requestsToday: { used: dailyRequests ? MAX_FRIEND_REQUESTS_PER_DAY - dailyRequests.remaining : 0, limit: MAX_FRIEND_REQUESTS_PER_DAY },
-      remindersToday: { used: dailyReminders ? MAX_FRIEND_REMINDERS_PER_DAY - dailyReminders.remaining : 0, limit: MAX_FRIEND_REMINDERS_PER_DAY },
+      requestsToday: {
+        used: dailyRequests ? MAX_FRIEND_REQUESTS_PER_DAY - dailyRequests.remaining : 0,
+        limit: MAX_FRIEND_REQUESTS_PER_DAY,
+      },
+      remindersToday: {
+        used: dailyReminders ? MAX_FRIEND_REMINDERS_PER_DAY - dailyReminders.remaining : 0,
+        limit: MAX_FRIEND_REMINDERS_PER_DAY,
+      },
       remindersThisMonth: {
         used: monthlyReminders ? MAX_FRIEND_REMINDERS_PER_MONTH - monthlyReminders.remaining : 0,
         limit: MAX_FRIEND_REMINDERS_PER_MONTH,

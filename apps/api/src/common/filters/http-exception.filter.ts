@@ -42,10 +42,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // would otherwise leak straight into the client-facing JSON response
       // in every environment, not just dev. The real message is still fully
       // logged server-side via the call below.
-      this.logger.error(
-        `Unhandled exception: ${exception.message}`,
-        exception.stack,
-      );
+      this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
     }
 
     const userId = (request as any).user?.id || 'anonymous';

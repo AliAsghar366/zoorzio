@@ -69,13 +69,11 @@ describe('Auth (e2e)', () => {
     const testPassword = 'SecureP@ss123';
 
     beforeAll(async () => {
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          email: testEmail,
-          password: testPassword,
-          name: 'Login Test User',
-        });
+      await request(app.getHttpServer()).post('/auth/register').send({
+        email: testEmail,
+        password: testPassword,
+        name: 'Login Test User',
+      });
     });
 
     it('should login with valid credentials', () => {
@@ -160,9 +158,7 @@ describe('Auth (e2e)', () => {
     });
 
     it('should fail without token', () => {
-      return request(app.getHttpServer())
-        .get('/auth/me')
-        .expect(401);
+      return request(app.getHttpServer()).get('/auth/me').expect(401);
     });
   });
 

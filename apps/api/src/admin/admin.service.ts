@@ -27,19 +27,25 @@ export class AdminService {
   }
 
   async getStats() {
-    const [totalUsers, activeSubscriptions, totalMemories, totalTasks, totalReminders, planBreakdown] =
-      await Promise.all([
-        this.prisma.user.count(),
-        this.prisma.subscription.count({ where: { status: 'ACTIVE' } }),
-        this.prisma.memory.count(),
-        this.prisma.task.count(),
-        this.prisma.reminder.count(),
-        this.prisma.subscription.groupBy({
-          by: ['planId'],
-          where: { status: 'ACTIVE' },
-          _count: true,
-        }),
-      ]);
+    const [
+      totalUsers,
+      activeSubscriptions,
+      totalMemories,
+      totalTasks,
+      totalReminders,
+      planBreakdown,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.subscription.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.memory.count(),
+      this.prisma.task.count(),
+      this.prisma.reminder.count(),
+      this.prisma.subscription.groupBy({
+        by: ['planId'],
+        where: { status: 'ACTIVE' },
+        _count: true,
+      }),
+    ]);
 
     return {
       totalUsers,

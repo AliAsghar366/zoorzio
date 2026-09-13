@@ -46,7 +46,9 @@ export class RateLimitService implements OnModuleDestroy {
     // listener this is an unhandled EventEmitter error that crashes the
     // process. Logging once per event is enough - actual command failures
     // are handled per-call by falling back to the in-memory store below.
-    client.on('error', (error) => this.logger.warn(`Redis rate-limit store error: ${error.message}`));
+    client.on('error', (error) =>
+      this.logger.warn(`Redis rate-limit store error: ${error.message}`),
+    );
     return client;
   }
 
@@ -60,7 +62,9 @@ export class RateLimitService implements OnModuleDestroy {
       try {
         return await this.checkLimitRedis(key, limit, windowMs);
       } catch (error) {
-        this.logger.warn(`Redis rate-limit check failed for "${key}", falling back to in-memory: ${error}`);
+        this.logger.warn(
+          `Redis rate-limit check failed for "${key}", falling back to in-memory: ${error}`,
+        );
       }
     }
     return this.checkLimitInMemory(key, limit, windowMs);
@@ -110,15 +114,22 @@ export class RateLimitService implements OnModuleDestroy {
         const info = await this.getInfoRedis(key);
         if (info) return info;
       } catch (error) {
-        this.logger.warn(`Redis rate-limit info lookup failed for "${key}", falling back to in-memory: ${error}`);
+        this.logger.warn(
+          `Redis rate-limit info lookup failed for "${key}", falling back to in-memory: ${error}`,
+        );
       }
     }
     return this.getInfoInMemory(key);
   }
 
-  private async getInfoRedis(key: string): Promise<{ remaining: number; resetTime: number } | null> {
+  private async getInfoRedis(
+    key: string,
+  ): Promise<{ remaining: number; resetTime: number } | null> {
     const redisKey = REDIS_KEY_PREFIX + key;
-    const [count, meta] = await Promise.all([this.redis!.get(redisKey), this.redis!.hgetall(redisKey + ':meta')]);
+    const [count, meta] = await Promise.all([
+      this.redis!.get(redisKey),
+      this.redis!.hgetall(redisKey + ':meta'),
+    ]);
 
     if (!count || !meta?.limit) return null;
 

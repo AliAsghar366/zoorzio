@@ -113,9 +113,7 @@ describe('Calendar (e2e)', () => {
 
   describe('Authorization', () => {
     it('should fail without token', () => {
-      return request(app.getHttpServer())
-        .get('/calendar/events')
-        .expect(401);
+      return request(app.getHttpServer()).get('/calendar/events').expect(401);
     });
 
     it('should fail with invalid token', () => {
@@ -129,9 +127,7 @@ describe('Calendar (e2e)', () => {
   describe('Date Filtering', () => {
     it('should filter events by date range', () => {
       const startDate = new Date().toISOString().split('T')[0];
-      const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
+      const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       return request(app.getHttpServer())
         .get(`/calendar/events?startDate=${startDate}&endDate=${endDate}`)
