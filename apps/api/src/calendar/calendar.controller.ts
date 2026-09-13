@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Body,
-  Param,
-  Query,
-  Request,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, Request, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
@@ -36,7 +26,9 @@ export class CalendarController {
 
   @Get('google/callback')
   @Public()
-  @ApiOperation({ summary: 'Google OAuth redirect target - exchanges the code and connects the calendar' })
+  @ApiOperation({
+    summary: 'Google OAuth redirect target - exchanges the code and connects the calendar',
+  })
   async googleCallback(
     @Query('code') code: string,
     @Query('state') state: string,
@@ -45,12 +37,19 @@ export class CalendarController {
   ) {
     const frontendUrl = this.config.get('FRONTEND_URL', 'http://localhost:3000');
     if (error) {
-      return res.redirect(`${frontendUrl}/calendar?provider=google&status=error&message=${encodeURIComponent(error)}`);
+      return res.redirect(
+        `${frontendUrl}/calendar?provider=google&status=error&message=${encodeURIComponent(error)}`,
+      );
     }
     try {
       const { userId } = this.oauthService.verifyState(state);
       const tokens = await this.oauthService.exchangeGoogleCode(code);
-      await this.calendarService.connectGoogleCalendar(userId, tokens.accessToken, tokens.refreshToken);
+      await this.calendarService.connectGoogleCalendar(
+        userId,
+        tokens.accessToken,
+        tokens.refreshToken,
+        tokens.expiresIn,
+      );
       return res.redirect(`${frontendUrl}/calendar?provider=google&status=connected`);
     } catch (err: any) {
       return res.redirect(
@@ -68,7 +67,9 @@ export class CalendarController {
 
   @Get('outlook/callback')
   @Public()
-  @ApiOperation({ summary: 'Outlook OAuth redirect target - exchanges the code and connects the calendar' })
+  @ApiOperation({
+    summary: 'Outlook OAuth redirect target - exchanges the code and connects the calendar',
+  })
   async outlookCallback(
     @Query('code') code: string,
     @Query('state') state: string,
@@ -77,12 +78,18 @@ export class CalendarController {
   ) {
     const frontendUrl = this.config.get('FRONTEND_URL', 'http://localhost:3000');
     if (error) {
-      return res.redirect(`${frontendUrl}/calendar?provider=outlook&status=error&message=${encodeURIComponent(error)}`);
+      return res.redirect(
+        `${frontendUrl}/calendar?provider=outlook&status=error&message=${encodeURIComponent(error)}`,
+      );
     }
     try {
       const { userId } = this.oauthService.verifyState(state);
       const tokens = await this.oauthService.exchangeOutlookCode(code);
-      await this.calendarService.connectOutlookCalendar(userId, tokens.accessToken, tokens.refreshToken);
+      await this.calendarService.connectOutlookCalendar(
+        userId,
+        tokens.accessToken,
+        tokens.refreshToken,
+      );
       return res.redirect(`${frontendUrl}/calendar?provider=outlook&status=connected`);
     } catch (err: any) {
       return res.redirect(

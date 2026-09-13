@@ -18,6 +18,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request as ExpressRequest, Response } from 'express';
 import { WhatsAppService } from './whatsapp.service';
+import { WhatsAppSenderService } from './whatsapp-sender.service';
 import { TelegramService } from './telegram.service';
 import { EmailService } from './email.service';
 import { SmsService } from './sms.service';
@@ -42,6 +43,7 @@ const CREDENTIAL_TYPES: Record<string, ChannelType> = {
 export class ChannelsController {
   constructor(
     private readonly whatsappService: WhatsAppService,
+    private readonly whatsappSender: WhatsAppSenderService,
     private readonly telegramService: TelegramService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
@@ -239,13 +241,24 @@ export class ChannelsController {
     throw new ForbiddenException('Invalid verification token');
   }
 
-  // WhatsApp Webhook Handler (called by Meta)
+  // WhatsApp Webhook Handler (called by Meta) - the payload is signed with the
+  // app secret, and this endpoint is public, so the signature is what proves a
+  // request actually came from Meta rather than anyone who found the URL.
   @Public()
   @Post('whatsapp/webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'WhatsApp webhook handler' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
-  async handleWhatsAppWebhook(@Body() payload: any) {
+  async handleWhatsAppWebhook(
+    @Req() req: RawBodyRequest<ExpressRequest>,
+    @Body() payload: any,
+    @Headers('x-hub-signature-256') signature: string,
+  ) {
+    const rawBody = (req.rawBody as Buffer)?.toString('utf8') ?? '';
+    if (!(await this.whatsappService.verifySignature(rawBody, signature))) {
+      throw new ForbiddenException('Invalid WhatsApp signature');
+    }
+
     return this.whatsappService.handleWebhook(payload);
   }
 
@@ -266,7 +279,7 @@ export class ChannelsController {
   @ApiOperation({ summary: 'Send WhatsApp message' })
   @ApiResponse({ status: 200, description: 'Message sent' })
   async sendWhatsAppMessage(@Request() req: any, @Body() body: { to: string; message: string }) {
-    return this.whatsappService.sendMessage(req.user.id, body.to, body.message);
+    return this.whatsappSender.sendMessage(req.user.id, body.to, body.message);
   }
 
   // Send Telegram Message

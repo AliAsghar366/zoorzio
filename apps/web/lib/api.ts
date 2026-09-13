@@ -514,3 +514,41 @@ export const friendsApi = {
   remind: (friendId: string, message: string) =>
     apiFetch(`/friends/${friendId}/remind`, { method: 'POST', body: { message } }),
 };
+
+export interface Contact {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const contactsApi = {
+  list: (search?: string) =>
+    apiFetch<Contact[]>(`/contacts${search ? `?search=${encodeURIComponent(search)}` : ''}`),
+  create: (contact: { name: string; email?: string; phone?: string }) =>
+    apiFetch<Contact>('/contacts', { method: 'POST', body: contact }),
+  update: (id: string, contact: { name?: string; email?: string; phone?: string }) =>
+    apiFetch<Contact>(`/contacts/${id}`, { method: 'PATCH', body: contact }),
+  remove: (id: string) => apiFetch(`/contacts/${id}`, { method: 'DELETE' }),
+};
+
+export type ActionPermissionMode = 'AUTO' | 'CONFIRM';
+
+export interface ActionPermission {
+  name: string;
+  label: string;
+  description: string;
+  mode: ActionPermissionMode;
+  isDefault: boolean;
+}
+
+export const actionPermissionsApi = {
+  list: () => apiFetch<ActionPermission[]>('/action-permissions'),
+  setMode: (toolName: string, mode: ActionPermissionMode) =>
+    apiFetch<{ toolName: string; mode: ActionPermissionMode }>(`/action-permissions/${toolName}`, {
+      method: 'PUT',
+      body: { mode },
+    }),
+};

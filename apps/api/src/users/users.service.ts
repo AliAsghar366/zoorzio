@@ -36,7 +36,14 @@ export class UsersService {
 
   async update(
     id: string,
-    data: { name?: string; phone?: string; avatar?: string; location?: string; timezone?: string; language?: string },
+    data: {
+      name?: string;
+      phone?: string;
+      avatar?: string;
+      location?: string;
+      timezone?: string;
+      language?: string;
+    },
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -74,9 +81,21 @@ export class UsersService {
   }
 
   async getPreferences(userId: string) {
-    return this.prisma.userPreferences.findUnique({
+    const preferences = await this.prisma.userPreferences.findUnique({
       where: { userId },
     });
+
+    // A user who has never changed a setting has no row yet. Return the same
+    // defaults the row would have been created with, so the settings screen
+    // renders real values instead of an empty panel.
+    return (
+      preferences ?? {
+        userId,
+        aiTone: 'professional',
+        notifications: {},
+        privacy: {},
+      }
+    );
   }
 
   async delete(id: string) {

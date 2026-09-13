@@ -1,6 +1,10 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatController } from './chat.controller';
+import { ToolExecutionService } from './tool-execution.service';
+import { PrismaModule } from '../prisma/prisma.module';
+import { ContactsModule } from '../contacts/contacts.module';
+import { SecurityModule } from '../security/security.module';
 import { AIModule } from '../ai/ai.module';
 import { SearchModule } from '../search/search.module';
 import { TasksModule } from '../tasks/tasks.module';
@@ -17,10 +21,11 @@ import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
+    PrismaModule,
     AIModule,
     SearchModule,
     TasksModule,
-    RemindersModule,
+    forwardRef(() => RemindersModule),
     ListsModule,
     MemoryModule,
     BoardsModule,
@@ -28,11 +33,15 @@ import { UsersModule } from '../users/users.module';
     FriendsModule,
     GamificationModule,
     IntegrationsModule,
-    ChannelsModule,
+    ContactsModule,
+    SecurityModule,
+    // The agent both serves and calls the channels layer (an inbound WhatsApp
+    // message runs the agent; the agent replies and offers buttons on it).
+    forwardRef(() => ChannelsModule),
     UsersModule,
   ],
   controllers: [ChatController],
-  providers: [ChatService],
-  exports: [ChatService],
+  providers: [ChatService, ToolExecutionService],
+  exports: [ChatService, ToolExecutionService],
 })
 export class ChatModule {}

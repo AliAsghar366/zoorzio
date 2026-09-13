@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -49,8 +50,19 @@ export class GoogleCalendarService {
     }
   }
 
+  /**
+   * Creates a real event on the user's Google Calendar.
+   *
+   * `attendees` are invited by Google itself (it sends the invitation emails),
+   * and `withMeet` asks Google to mint a Meet conference - which requires the
+   * conferenceDataVersion=1 query param, without which Google silently ignores
+   * the conferenceData block and returns an event with no link.
+   */
   async createEvent(accessToken: string, calendarId: string, eventData: any): Promise<any> {
     try {
+      const attendees: string[] = Array.isArray(eventData.attendees) ? eventData.attendees : [];
+      const wantsMeet = eventData.withMeet !== false;
+
       const response = await firstValueFrom(
         this.http.post(
           `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
@@ -60,17 +72,87 @@ export class GoogleCalendarService {
             location: eventData.location,
             start: eventData.allDay
               ? { date: toDateOnly(eventData.startTime) }
-              : { dateTime: new Date(eventData.startTime).toISOString() },
+              : {
+                  dateTime: new Date(eventData.startTime).toISOString(),
+                  ...(eventData.timezone ? { timeZone: eventData.timezone } : {}),
+                },
             end: eventData.allDay
               ? { date: toDateOnly(eventData.endTime) }
-              : { dateTime: new Date(eventData.endTime).toISOString() },
+              : {
+                  dateTime: new Date(eventData.endTime).toISOString(),
+                  ...(eventData.timezone ? { timeZone: eventData.timezone } : {}),
+                },
+            ...(attendees.length > 0 ? { attendees: attendees.map((email) => ({ email })) } : {}),
+            ...(wantsMeet
+              ? {
+                  conferenceData: {
+                    createRequest: {
+                      requestId: randomUUID(),
+                      conferenceSolutionKey: { type: 'hangoutsMeet' },
+                    },
+                  },
+                }
+              : {}),
           },
-          { headers: this.authHeaders(accessToken) },
+          {
+            headers: this.authHeaders(accessToken),
+            params: {
+              ...(wantsMeet ? { conferenceDataVersion: 1 } : {}),
+              ...(attendees.length > 0 ? { sendUpdates: 'all' } : {}),
+            },
+          },
         ),
       );
       return response.data;
     } catch (error) {
       this.handleError('createEvent', error);
+      throw error;
+    }
+  }
+
+  /** Partial update - only the fields present in `changes` are sent to Google. */
+  async updateEvent(
+    accessToken: string,
+    calendarId: string,
+    eventId: string,
+    changes: any,
+  ): Promise<any> {
+    try {
+      const attendees: string[] | undefined = Array.isArray(changes.attendees)
+        ? changes.attendees
+        : undefined;
+
+      const body: Record<string, unknown> = {};
+      if (changes.title !== undefined) body.summary = changes.title;
+      if (changes.description !== undefined) body.description = changes.description;
+      if (changes.location !== undefined) body.location = changes.location;
+      if (changes.startTime !== undefined) {
+        body.start = {
+          dateTime: new Date(changes.startTime).toISOString(),
+          ...(changes.timezone ? { timeZone: changes.timezone } : {}),
+        };
+      }
+      if (changes.endTime !== undefined) {
+        body.end = {
+          dateTime: new Date(changes.endTime).toISOString(),
+          ...(changes.timezone ? { timeZone: changes.timezone } : {}),
+        };
+      }
+      if (attendees) body.attendees = attendees.map((email) => ({ email }));
+
+      const response = await firstValueFrom(
+        this.http.patch(
+          `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+          body,
+          {
+            headers: this.authHeaders(accessToken),
+            ...(attendees ? { params: { sendUpdates: 'all' } } : {}),
+          },
+        ),
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError('updateEvent', error);
       throw error;
     }
   }

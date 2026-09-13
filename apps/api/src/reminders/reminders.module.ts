@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { RemindersService } from './reminders.service';
 import { RemindersController } from './reminders.controller';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -7,7 +7,9 @@ import { BillingModule } from '../billing/billing.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, ChannelsModule, BillingModule, NotificationsModule],
+  // Reminders are delivered over the channels layer, whose button taps come
+  // back here to complete/snooze/cancel them.
+  imports: [PrismaModule, forwardRef(() => ChannelsModule), BillingModule, NotificationsModule],
   controllers: [RemindersController],
   providers: [RemindersService],
   exports: [RemindersService],

@@ -10,11 +10,18 @@ import { OutlookCalendarService } from './outlook-calendar.service';
 import { AppleCalendarService } from './apple-calendar.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AIModule } from '../ai/ai.module';
+import { SecurityModule } from '../security/security.module';
+import { IntegrationsModule } from '../integrations/integrations.module';
 
 @Module({
   imports: [
     PrismaModule,
     AIModule,
+    // EncryptionService (credentials at rest) and IntegrationsOAuthService
+    // (whose Google refresh call is keyed off the same GOOGLE_CLIENT_ID/SECRET
+    // this module's OAuth flow uses, so there's no second implementation).
+    SecurityModule,
+    IntegrationsModule,
     HttpModule.register({ timeout: 10000 }),
     // Separate short-lived signing keyed off the same JWT_SECRET, used only to
     // sign/verify the OAuth `state` param (see CalendarOAuthService) - the

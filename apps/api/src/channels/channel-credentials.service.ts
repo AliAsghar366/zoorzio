@@ -111,16 +111,29 @@ export class ChannelCredentialsService {
     return record ? this.toPublicView(record) : null;
   }
 
-  /** Returns the decrypted token for a user's own credential, or null if they haven't saved one. */
-  async getDecryptedToken(userId: string, type: ChannelType): Promise<ResolvedCredential | null> {
+  /**
+   * Returns the decrypted token for a user's own credential, or null if they
+   * haven't saved one.
+   *
+   * Credentials marked INVALID or DISCONNECTED are skipped by default, so a
+   * known-broken bot is never used to send. Pass `includeUnusable` when the
+   * caller's whole purpose is to examine a broken credential - re-testing one
+   * after fixing its cause is exactly when it needs to be readable.
+   */
+  async getDecryptedToken(
+    userId: string,
+    type: ChannelType,
+    { includeUnusable = false }: { includeUnusable?: boolean } = {},
+  ): Promise<ResolvedCredential | null> {
     const record = await this.prisma.channelCredential.findUnique({
       where: { userId_type: { userId, type } },
     });
-    if (
-      !record ||
+    if (!record) return null;
+
+    const unusable =
       record.status === ChannelCredentialStatus.INVALID ||
-      record.status === ChannelCredentialStatus.DISCONNECTED
-    ) {
+      record.status === ChannelCredentialStatus.DISCONNECTED;
+    if (unusable && !includeUnusable) {
       return null;
     }
 
@@ -196,7 +209,10 @@ export class ChannelCredentialsService {
   }
 
   async testCredential(userId: string, type: ChannelType) {
-    const resolved = await this.getDecryptedToken(userId, type);
+    // Testing is the one place a broken credential must still be readable -
+    // otherwise a bot marked INVALID can never be re-tested after its cause is
+    // fixed, and the user is told no credential is saved when one plainly is.
+    const resolved = await this.getDecryptedToken(userId, type, { includeUnusable: true });
     if (!resolved) throw new NotFoundException('No credential saved for this platform');
 
     try {

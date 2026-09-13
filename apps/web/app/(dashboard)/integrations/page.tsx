@@ -4,11 +4,13 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SiGithub, SiNotion, SiGooglecalendar, SiGoogle } from 'react-icons/si';
 import { BsMicrosoft } from 'react-icons/bs';
-import { Slack, Star } from 'lucide-react';
+import { MessageCircle, Slack, Star } from 'lucide-react';
 import {
   api,
   ApiError,
+  channelsApi,
   integrationsApi,
+  type LinkedChannel,
   type IntegrationCard,
   type GitHubRepo,
   type GitHubIssue,
@@ -24,7 +26,10 @@ type Category = (typeof CATEGORIES)[number];
 const CALENDAR_KEYS = new Set(['google_calendar', 'outlook_calendar']);
 const PANEL_PROVIDERS = new Set(['github', 'notion', 'google_workspace', 'slack']);
 
-const PROVIDER_ICONS: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
+const PROVIDER_ICONS: Record<
+  string,
+  React.ComponentType<{ size?: number | string; className?: string }>
+> = {
   github: SiGithub,
   notion: SiNotion,
   slack: Slack,
@@ -69,11 +74,18 @@ function IntegrationsPageInner() {
     setBanner(null);
     try {
       const url = CALENDAR_KEYS.has(card.key)
-        ? (await api.get<{ url: string }>(`/calendar/${card.key === 'google_calendar' ? 'google' : 'outlook'}/authorize`)).url
+        ? (
+            await api.get<{ url: string }>(
+              `/calendar/${card.key === 'google_calendar' ? 'google' : 'outlook'}/authorize`,
+            )
+          ).url
         : (await integrationsApi.authorize(providerFor(card.key))).url;
       window.location.href = url;
     } catch (err) {
-      setBanner({ ok: false, text: err instanceof ApiError ? err.message : `Failed to start ${card.name} connection` });
+      setBanner({
+        ok: false,
+        text: err instanceof ApiError ? err.message : `Failed to start ${card.name} connection`,
+      });
       setBusyKey(null);
     }
   };
@@ -85,7 +97,10 @@ function IntegrationsPageInner() {
       await integrationsApi.disconnect(card.key);
       await load();
     } catch (err) {
-      setBanner({ ok: false, text: err instanceof ApiError ? err.message : `Failed to disconnect ${card.name}` });
+      setBanner({
+        ok: false,
+        text: err instanceof ApiError ? err.message : `Failed to disconnect ${card.name}`,
+      });
     } finally {
       setBusyKey(null);
     }
@@ -97,85 +112,233 @@ function IntegrationsPageInner() {
     else if (category !== 'All') list = list.filter((c) => c.category === category);
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+      list = list.filter(
+        (c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q),
+      );
     }
     return list;
   }, [cards, category, search]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white" />
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-white" />
       </div>
     );
   }
 
   return (
-    <div className="text-white pb-4">
+    <div className="pb-4 text-white">
       <h1 className="text-3xl font-bold">Integrations</h1>
-      <p className="text-white/60 text-sm mt-1">Connect your favorite tools and boost your productivity.</p>
+      <p className="mt-1 text-sm text-white/60">
+        Connect your favorite tools and boost your productivity.
+      </p>
 
-      {banner && <div className={`dashboard-card p-4 mt-4 text-sm ${banner.ok ? 'text-green-300' : 'text-red-300'}`}>{banner.text}</div>}
+      {banner && (
+        <div
+          className={`dashboard-card mt-4 p-4 text-sm ${banner.ok ? 'text-green-300' : 'text-red-300'}`}
+        >
+          {banner.text}
+        </div>
+      )}
 
-      <div className="flex gap-2 mt-4 flex-wrap">
+      <div className="mt-4 flex flex-wrap gap-2">
         {CATEGORIES.map((c) => (
-          <button key={c} onClick={() => setCategory(c)} className={category === c ? 'dashboard-pill active text-xs py-1.5 px-3' : 'dashboard-pill text-xs py-1.5 px-3'}>
+          <button
+            key={c}
+            onClick={() => setCategory(c)}
+            className={
+              category === c
+                ? 'dashboard-pill active px-3 py-1.5 text-xs'
+                : 'dashboard-pill px-3 py-1.5 text-xs'
+            }
+          >
             {c}
           </button>
         ))}
       </div>
 
-      <input placeholder="Search integrations" value={search} onChange={(e) => setSearch(e.target.value)} className="dashboard-input mt-4" />
+      <input
+        placeholder="Search integrations"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="dashboard-input mt-4"
+      />
 
-      <div className="space-y-3 mt-4">
+      <WhatsAppCard />
+
+      <div className="mt-4 space-y-3">
         {visible.map((card) => {
           const hasDataPanel = card.isConnected && PANEL_PROVIDERS.has(card.key);
           return (
             <div key={card.key} className="dashboard-card overflow-hidden">
-              <div className="p-5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ac84cc] to-[#dc8cc5] flex items-center justify-center shrink-0">
+              <div className="flex items-center justify-between gap-4 p-5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ac84cc] to-[#dc8cc5]">
                     {(() => {
                       const Icon = PROVIDER_ICONS[card.key];
-                      return Icon ? <Icon size={18} className="text-white" /> : <span className="text-xs font-bold">{card.name.slice(0, 2).toUpperCase()}</span>;
+                      return Icon ? (
+                        <Icon size={18} className="text-white" />
+                      ) : (
+                        <span className="text-xs font-bold">
+                          {card.name.slice(0, 2).toUpperCase()}
+                        </span>
+                      );
                     })()}
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate">{card.name}</p>
-                      {card.isConnected && <span className="dashboard-pill text-[10px] py-0.5 px-2 cursor-default shrink-0">Connected</span>}
+                      <p className="truncate text-sm font-semibold">{card.name}</p>
+                      {card.isConnected && (
+                        <span className="dashboard-pill shrink-0 cursor-default px-2 py-0.5 text-[10px]">
+                          Connected
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-white/50 mt-0.5">{card.description}</p>
+                    <p className="mt-0.5 text-xs text-white/50">{card.description}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex shrink-0 items-center gap-2">
                   {hasDataPanel && (
                     <button
                       onClick={() => setExpandedKey((k) => (k === card.key ? null : card.key))}
-                      className="dashboard-pill text-xs py-2 px-4"
+                      className="dashboard-pill px-4 py-2 text-xs"
                     >
                       {expandedKey === card.key ? 'Hide' : 'View'}
                     </button>
                   )}
                   <button
-                    onClick={() => (card.isConnected ? handleDisconnect(card) : handleConnect(card))}
+                    onClick={() =>
+                      card.isConnected ? handleDisconnect(card) : handleConnect(card)
+                    }
                     disabled={busyKey === card.key}
-                    className="dashboard-pill text-xs py-2 px-4"
+                    className="dashboard-pill px-4 py-2 text-xs"
                   >
                     {busyKey === card.key ? '…' : card.isConnected ? 'Disconnect' : 'Connect'}
                   </button>
                 </div>
               </div>
-              {hasDataPanel && expandedKey === card.key && <IntegrationDataPanel providerKey={card.key} />}
+              {hasDataPanel && expandedKey === card.key && (
+                <IntegrationDataPanel providerKey={card.key} />
+              )}
             </div>
           );
         })}
         {visible.length === 0 && (
           <div className="dashboard-card p-8 text-center">
-            <p className="text-white/50 text-sm">No integrations match this filter.</p>
+            <p className="text-sm text-white/50">No integrations match this filter.</p>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * WhatsApp is linked by proving ownership of a number (sending a one-time code
+ * from it), not by an OAuth redirect, so it gets its own card rather than
+ * joining the provider list above.
+ */
+function WhatsAppCard() {
+  const [channel, setChannel] = useState<LinkedChannel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [linking, setLinking] = useState(false);
+  const [linkCode, setLinkCode] = useState<{ code: string; waLink: string | null } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () =>
+    channelsApi
+      .listLinked()
+      .then((channels) => setChannel(channels.find((c) => c.type === 'WHATSAPP') ?? null))
+      .catch(() => setError('Could not check your WhatsApp connection.'));
+
+  useEffect(() => {
+    load().finally(() => setLoading(false));
+  }, []);
+
+  const startLink = async () => {
+    setLinking(true);
+    setError(null);
+    try {
+      const created = await channelsApi.linkWhatsApp();
+      setLinkCode({ code: created.code, waLink: created.waLink });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not start linking.');
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const unlink = async () => {
+    if (!channel) return;
+    if (!confirm('Disconnect WhatsApp? Zoorzio will stop replying on that number.')) return;
+    await channelsApi.unlink(channel.id);
+    setChannel(null);
+    setLinkCode(null);
+  };
+
+  return (
+    <div className="dashboard-card mt-4 overflow-hidden">
+      <div className="flex items-center justify-between gap-4 p-5">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
+            <MessageCircle size={18} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium">WhatsApp</p>
+            <p className="mt-0.5 text-xs text-white/50">
+              {loading
+                ? 'Checking…'
+                : channel
+                  ? `Connected as ${channel.externalId}`
+                  : 'Message Zoorzio on WhatsApp to set reminders, schedule meetings and send email.'}
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0">
+          {channel ? (
+            <button onClick={unlink} className="dashboard-pill px-4 py-2 text-xs">
+              Disconnect
+            </button>
+          ) : (
+            <button
+              onClick={startLink}
+              disabled={linking || loading}
+              className="dashboard-pill px-4 py-2 text-xs"
+            >
+              {linking ? '…' : 'Connect'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && <p className="px-5 pb-4 text-xs text-red-300">{error}</p>}
+
+      {linkCode && !channel && (
+        <div className="space-y-2 border-t border-white/10 bg-white/5 p-5">
+          <p className="text-xs text-white/60">
+            Send this code to the Zoorzio WhatsApp number from the phone you want to link:
+          </p>
+          <p className="font-mono text-lg tracking-widest">LINK {linkCode.code}</p>
+          {linkCode.waLink ? (
+            <a
+              href={linkCode.waLink}
+              target="_blank"
+              rel="noreferrer"
+              className="dashboard-pill inline-block px-4 py-2 text-xs"
+            >
+              Open WhatsApp
+            </a>
+          ) : (
+            <p className="text-xs text-white/40">
+              Send it to the Zoorzio business number from your phone.
+            </p>
+          )}
+          <p className="text-xs text-white/40">
+            Once it is linked, refresh this page. The code expires shortly.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -186,7 +349,7 @@ function providerFor(key: string): 'github' | 'notion' | 'google_workspace' | 's
 
 function IntegrationDataPanel({ providerKey }: { providerKey: string }) {
   return (
-    <div className="border-t border-white/10 p-5 bg-white/5">
+    <div className="border-t border-white/10 bg-white/5 p-5">
       {providerKey === 'github' && <GitHubPanel />}
       {providerKey === 'notion' && <NotionPanel />}
       {providerKey === 'google_workspace' && <GoogleWorkspacePanel />}
@@ -214,7 +377,9 @@ function GitHubPanel() {
         setRepos(r);
         setIssues(i);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load GitHub data'));
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : 'Failed to load GitHub data'),
+      );
   }, []);
 
   if (error) return <PanelError message={error} />;
@@ -223,30 +388,46 @@ function GitHubPanel() {
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-xs font-semibold text-white/70 mb-2">Your repositories</h3>
+        <h3 className="mb-2 text-xs font-semibold text-white/70">Your repositories</h3>
         {repos.length === 0 ? (
           <p className="text-xs text-white/40">No repositories found.</p>
         ) : (
           <div className="space-y-1.5">
             {repos.map((r) => (
-              <a key={r.id} href={r.url} target="_blank" rel="noreferrer" className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2 hover:bg-white/10">
-                <span className="text-sm truncate">{r.fullName}</span>
-                <span className="flex items-center gap-1 text-xs text-white/50 shrink-0"><Star size={12} /> {r.stars}</span>
+              <a
+                key={r.id}
+                href={r.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 hover:bg-white/10"
+              >
+                <span className="truncate text-sm">{r.fullName}</span>
+                <span className="flex shrink-0 items-center gap-1 text-xs text-white/50">
+                  <Star size={12} /> {r.stars}
+                </span>
               </a>
             ))}
           </div>
         )}
       </div>
       <div>
-        <h3 className="text-xs font-semibold text-white/70 mb-2">Open issues assigned to you</h3>
+        <h3 className="mb-2 text-xs font-semibold text-white/70">Open issues assigned to you</h3>
         {issues.length === 0 ? (
           <p className="text-xs text-white/40">Nothing assigned to you right now.</p>
         ) : (
           <div className="space-y-1.5">
             {issues.map((i) => (
-              <a key={i.id} href={i.url} target="_blank" rel="noreferrer" className="block bg-white/5 rounded-xl px-3 py-2 hover:bg-white/10">
-                <span className="text-sm block truncate">{i.title}</span>
-                <span className="text-xs text-white/40">{i.repo} #{i.number}</span>
+              <a
+                key={i.id}
+                href={i.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-xl bg-white/5 px-3 py-2 hover:bg-white/10"
+              >
+                <span className="block truncate text-sm">{i.title}</span>
+                <span className="text-xs text-white/40">
+                  {i.repo} #{i.number}
+                </span>
               </a>
             ))}
           </div>
@@ -274,7 +455,7 @@ function NotionPanel() {
 
   return (
     <div>
-      <div className="flex gap-2 mb-3">
+      <div className="mb-3 flex gap-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -282,7 +463,7 @@ function NotionPanel() {
           placeholder="Search your Notion pages"
           className="dashboard-input flex-1 !py-1.5 !text-sm"
         />
-        <button onClick={() => search(query)} className="dashboard-pill text-xs px-4">
+        <button onClick={() => search(query)} className="dashboard-pill px-4 text-xs">
           Search
         </button>
       </div>
@@ -290,16 +471,22 @@ function NotionPanel() {
       {!error && !pages && <PanelLoading />}
       {pages && pages.length === 0 && (
         <p className="text-xs text-white/40">
-          Nothing found. Notion only shows pages you&apos;ve explicitly shared with the Zoorzio integration — open a page in
-          Notion, click Share, and add &quot;Zoorzio&quot;.
+          Nothing found. Notion only shows pages you&apos;ve explicitly shared with the Zoorzio
+          integration — open a page in Notion, click Share, and add &quot;Zoorzio&quot;.
         </p>
       )}
       {pages && pages.length > 0 && (
         <div className="space-y-1.5">
           {pages.map((p) => (
-            <a key={p.id} href={p.url} target="_blank" rel="noreferrer" className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2 hover:bg-white/10">
-              <span className="text-sm truncate">{p.title}</span>
-              <span className="text-[10px] text-white/40 shrink-0 ml-2">{p.object}</span>
+            <a
+              key={p.id}
+              href={p.url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 hover:bg-white/10"
+            >
+              <span className="truncate text-sm">{p.title}</span>
+              <span className="ml-2 shrink-0 text-[10px] text-white/40">{p.object}</span>
             </a>
           ))}
         </div>
@@ -319,7 +506,9 @@ function GoogleWorkspacePanel() {
         setEmails(e);
         setFiles(f);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load Google Workspace data'));
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : 'Failed to load Google Workspace data'),
+      );
   }, []);
 
   if (error) return <PanelError message={error} />;
@@ -328,29 +517,35 @@ function GoogleWorkspacePanel() {
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-xs font-semibold text-white/70 mb-2">Recent emails</h3>
+        <h3 className="mb-2 text-xs font-semibold text-white/70">Recent emails</h3>
         {emails.length === 0 ? (
           <p className="text-xs text-white/40">No recent emails.</p>
         ) : (
           <div className="space-y-1.5">
             {emails.map((m) => (
-              <div key={m.id} className="bg-white/5 rounded-xl px-3 py-2">
-                <p className="text-sm truncate">{m.subject}</p>
-                <p className="text-xs text-white/40 truncate">{m.from}</p>
+              <div key={m.id} className="rounded-xl bg-white/5 px-3 py-2">
+                <p className="truncate text-sm">{m.subject}</p>
+                <p className="truncate text-xs text-white/40">{m.from}</p>
               </div>
             ))}
           </div>
         )}
       </div>
       <div>
-        <h3 className="text-xs font-semibold text-white/70 mb-2">Recent Drive files</h3>
+        <h3 className="mb-2 text-xs font-semibold text-white/70">Recent Drive files</h3>
         {files.length === 0 ? (
           <p className="text-xs text-white/40">No recent files.</p>
         ) : (
           <div className="space-y-1.5">
             {files.map((f) => (
-              <a key={f.id} href={f.url} target="_blank" rel="noreferrer" className="block bg-white/5 rounded-xl px-3 py-2 hover:bg-white/10">
-                <span className="text-sm truncate block">{f.name}</span>
+              <a
+                key={f.id}
+                href={f.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-xl bg-white/5 px-3 py-2 hover:bg-white/10"
+              >
+                <span className="block truncate text-sm">{f.name}</span>
               </a>
             ))}
           </div>
@@ -375,7 +570,9 @@ function SlackPanel() {
         setChannels(c);
         if (c.length > 0) setSelectedChannel(c[0].id);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load Slack channels'));
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : 'Failed to load Slack channels'),
+      );
   }, []);
 
   const send = async () => {
@@ -399,12 +596,18 @@ function SlackPanel() {
 
   return (
     <div>
-      <h3 className="text-xs font-semibold text-white/70 mb-2">Send a message to a channel</h3>
+      <h3 className="mb-2 text-xs font-semibold text-white/70">Send a message to a channel</h3>
       {channels.length === 0 ? (
-        <p className="text-xs text-white/40">No channels found — invite the Zoorzio app to a channel first.</p>
+        <p className="text-xs text-white/40">
+          No channels found — invite the Zoorzio app to a channel first.
+        </p>
       ) : (
-        <div className="flex gap-2 flex-wrap">
-          <select value={selectedChannel} onChange={(e) => setSelectedChannel(e.target.value)} className="dashboard-input !py-1.5 !text-sm !w-auto">
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={selectedChannel}
+            onChange={(e) => setSelectedChannel(e.target.value)}
+            className="dashboard-input !w-auto !py-1.5 !text-sm"
+          >
             {channels.map((c) => (
               <option key={c.id} value={c.id}>
                 #{c.name}
@@ -416,15 +619,15 @@ function SlackPanel() {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send()}
             placeholder="Message"
-            className="dashboard-input flex-1 !py-1.5 !text-sm min-w-[140px]"
+            className="dashboard-input min-w-[140px] flex-1 !py-1.5 !text-sm"
           />
-          <button onClick={send} disabled={sending} className="dashboard-pill-primary text-xs px-4">
+          <button onClick={send} disabled={sending} className="dashboard-pill-primary px-4 text-xs">
             {sending ? 'Sending…' : 'Send'}
           </button>
         </div>
       )}
-      {error && <p className="text-xs text-red-300 mt-2">{error}</p>}
-      {notice && <p className="text-xs text-green-300 mt-2">{notice}</p>}
+      {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+      {notice && <p className="mt-2 text-xs text-green-300">{notice}</p>}
     </div>
   );
 }
@@ -433,8 +636,8 @@ export default function IntegrationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white" />
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-white" />
         </div>
       }
     >

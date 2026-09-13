@@ -13,6 +13,8 @@ import {
   ListChecks,
   CheckSquare,
   Lightbulb,
+  Contact,
+  SlidersHorizontal,
   Search,
   Volume2,
   VolumeX,
@@ -33,6 +35,7 @@ const ICONS = [
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/lists', label: 'Lists', icon: ListChecks },
   { href: '/boards', label: 'Boards', icon: CheckSquare },
+  { href: '/contacts', label: 'Contacts', icon: Contact },
   { href: '/master-zoorzio', label: 'Master Zoorzio', icon: Lightbulb },
 ];
 
@@ -69,9 +72,9 @@ export function TopIconNav() {
   };
 
   return (
-    <div className="sticky top-0 z-30 px-4 pt-4 pb-3">
+    <div className="sticky top-0 z-30 px-4 pb-3 pt-4">
       <div className="flex items-center justify-between">
-        <nav className="flex items-center gap-1 dashboard-card px-2 py-1.5 overflow-x-auto">
+        <nav className="dashboard-card flex items-center gap-1 overflow-x-auto px-2 py-1.5">
           {ICONS.map(({ href, label, icon: Icon }) => {
             const active = pathname?.startsWith(href);
             return (
@@ -82,8 +85,8 @@ export function TopIconNav() {
                 title={label}
                 className={
                   active
-                    ? 'flex items-center justify-center w-9 h-9 rounded-xl bg-white/15 text-white shrink-0'
-                    : 'flex items-center justify-center w-9 h-9 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors shrink-0'
+                    ? 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white'
+                    : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-white/10 hover:text-white'
                 }
               >
                 <Icon size={17} strokeWidth={2} />
@@ -92,15 +95,15 @@ export function TopIconNav() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          <div className="dashboard-card w-9 h-9 flex items-center justify-center">
+        <div className="ml-2 flex shrink-0 items-center gap-2">
+          <div className="dashboard-card flex h-9 w-9 items-center justify-center">
             <NotificationBell dark align="right" />
           </div>
           <Link
             href="/explore"
             aria-label="Search"
             title="Search"
-            className="dashboard-card w-9 h-9 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+            className="dashboard-card flex h-9 w-9 items-center justify-center text-white/70 transition-colors hover:text-white"
           >
             <Search size={16} />
           </Link>
@@ -108,7 +111,7 @@ export function TopIconNav() {
             onClick={() => setMuted((v) => !v)}
             aria-label={muted ? 'Unmute' : 'Mute'}
             title={muted ? 'Unmute' : 'Mute'}
-            className="dashboard-card w-9 h-9 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+            className="dashboard-card flex h-9 w-9 items-center justify-center text-white/70 transition-colors hover:text-white"
           >
             {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
@@ -118,23 +121,30 @@ export function TopIconNav() {
               onClick={() => setAccountOpen((v) => !v)}
               aria-label="Account"
               title="Account"
-              className="dashboard-card w-9 h-9 flex items-center justify-center text-xs font-bold text-white"
+              className="dashboard-card flex h-9 w-9 items-center justify-center text-xs font-bold text-white"
             >
               {initial}
             </button>
             {accountOpen && (
-              <div className="absolute right-0 top-11 dashboard-card p-1.5 flex flex-col gap-0.5 w-44 z-40">
+              <div className="dashboard-card absolute right-0 top-11 z-40 flex w-44 flex-col gap-0.5 p-1.5">
                 <Link
                   href="/profile"
                   onClick={() => setAccountOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/85 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
                 >
                   <UserCog size={15} /> Profile
                 </Link>
                 <Link
+                  href="/action-permissions"
+                  onClick={() => setAccountOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
+                >
+                  <SlidersHorizontal size={15} /> Action permissions
+                </Link>
+                <Link
                   href="/pricing"
                   onClick={() => setAccountOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/85 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
                 >
                   <CreditCard size={15} /> Pricing
                 </Link>
@@ -142,14 +152,14 @@ export function TopIconNav() {
                   <Link
                     href="/admin"
                     onClick={() => setAccountOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/85 hover:bg-white/10 transition-colors"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
                   >
                     <ShieldCheck size={15} /> Admin
                   </Link>
                 )}
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/85 hover:bg-white/10 transition-colors text-left"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
                 >
                   <LogOut size={15} /> Log out
                 </button>

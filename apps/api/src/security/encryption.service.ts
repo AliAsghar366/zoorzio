@@ -13,14 +13,37 @@ export class EncryptionService {
   private encryptionKey: Buffer;
 
   constructor(private configService: ConfigService) {
-    const keyHex = this.configService.get('ENCRYPTION_KEY');
+    const keyHex = this.configService.get<string>('ENCRYPTION_KEY');
+
     if (keyHex) {
-      this.encryptionKey = Buffer.from(keyHex, 'hex');
-    } else {
-      // Generate a key for development (in production, use KMS)
-      this.encryptionKey = crypto.randomBytes(this.keyLength);
-      this.logger.warn('Using generated encryption key - configure ENCRYPTION_KEY in production');
+      const key = Buffer.from(keyHex, 'hex');
+      // Validate at boot rather than letting createCipheriv fail on the first
+      // save. A truncated or non-hex value silently yields a short buffer, so
+      // without this a bad key looks fine until a user tries to connect a bot.
+      if (key.length !== this.keyLength) {
+        throw new Error(
+          `ENCRYPTION_KEY must be ${this.keyLength} bytes (${this.keyLength * 2} hex characters); ` +
+            `the configured value decodes to ${key.length} bytes.`,
+        );
+      }
+      this.encryptionKey = key;
+      return;
     }
+
+    // Refuse to boot in production rather than inventing a key. A generated key
+    // changes on every restart, which would leave every stored credential
+    // permanently undecryptable - silent data loss that only surfaces later.
+    if (this.configService.get('NODE_ENV') === 'production') {
+      throw new Error(
+        'ENCRYPTION_KEY must be set in production. Generate one with: ' +
+          "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+      );
+    }
+
+    this.encryptionKey = crypto.randomBytes(this.keyLength);
+    this.logger.warn(
+      'Using a generated encryption key - anything encrypted now becomes unreadable when this process restarts. Configure ENCRYPTION_KEY.',
+    );
   }
 
   async encrypt(data: string): Promise<string> {
@@ -46,10 +69,10 @@ export class EncryptionService {
   async decrypt(encryptedData: string): Promise<string> {
     try {
       const [ivHex, authTagHex, encrypted] = encryptedData.split(':');
-      
+
       const iv = Buffer.from(ivHex, 'hex');
       const authTag = Buffer.from(authTagHex, 'hex');
-      
+
       const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv, {
         authTagLength: this.tagLength,
       });
@@ -63,6 +86,33 @@ export class EncryptionService {
       this.logger.error('Decryption failed', error);
       throw error;
     }
+  }
+
+  /**
+   * True if `value` was produced by encrypt() - iv:authTag:ciphertext, all hex.
+   * Provider credentials never take this shape (Google access tokens start
+   * "ya29." and contain dots), so this reliably tells an encrypted value apart
+   * from one stored before credentials were encrypted at rest.
+   */
+  isEncrypted(value: string): boolean {
+    return /^[0-9a-f]{32}:[0-9a-f]{32}:[0-9a-f]*$/.test(value);
+  }
+
+  /**
+   * Decrypts a stored credential, passing through values that predate
+   * encryption instead of failing on them. Those get replaced with an
+   * encrypted value the next time the connection is refreshed or reconnected,
+   * so existing connections keep working through the transition.
+   */
+  async decryptIfEncrypted(value: unknown): Promise<string | undefined> {
+    if (typeof value !== 'string' || !value) return undefined;
+    if (!this.isEncrypted(value)) {
+      this.logger.warn(
+        'Read a credential that is still stored in plaintext; it will be encrypted on next write.',
+      );
+      return value;
+    }
+    return this.decrypt(value);
   }
 
   async hashPassword(password: string): Promise<string> {
@@ -102,7 +152,19 @@ export class EncryptionService {
 
   async verifyApiKey(key: string, hash: string): Promise<boolean> {
     const keyHash = await this.hashApiKey(key);
-    return keyHash === hash;
+    return this.constantTimeEquals(keyHash, hash);
+  }
+
+  /**
+   * Compares two hex digests without leaking how far they matched. Length is
+   * checked first because timingSafeEqual throws on mismatched buffers, which
+   * would turn a malformed value into a 500 instead of a clean `false`.
+   */
+  private constantTimeEquals(aHex: string, bHex: string): boolean {
+    const a = Buffer.from(aHex, 'hex');
+    const b = Buffer.from(bHex, 'hex');
+    if (a.length === 0 || a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
   }
 
   // Token generation
@@ -112,17 +174,10 @@ export class EncryptionService {
 
   // HMAC signing
   sign(data: string): string {
-    return crypto
-      .createHmac('sha256', this.encryptionKey)
-      .update(data)
-      .digest('hex');
+    return crypto.createHmac('sha256', this.encryptionKey).update(data).digest('hex');
   }
 
   verify(data: string, signature: string): boolean {
-    const expectedSignature = this.sign(data);
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSignature, 'hex'),
-    );
+    return this.constantTimeEquals(signature, this.sign(data));
   }
 }

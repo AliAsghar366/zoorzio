@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IntegrationType } from '@anchor/database';
 import { IntegrationsOAuthService, type IntegrationProvider } from './integrations-oauth.service';
+import { EncryptionService } from '../security/encryption.service';
 
 interface CatalogEntry {
   key: string;
@@ -59,6 +60,7 @@ export class IntegrationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly oauthService: IntegrationsOAuthService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   /**
@@ -70,27 +72,46 @@ export class IntegrationsService {
    */
   async getValidAccessToken(userId: string, provider: IntegrationProvider): Promise<string> {
     const type = this.integrationType(provider);
-    const integration = await this.prisma.integration.findUnique({ where: { userId_type: { userId, type } } });
+    const integration = await this.prisma.integration.findUnique({
+      where: { userId_type: { userId, type } },
+    });
     if (!integration || !integration.isActive) {
       throw new BadRequestException(`${provider} is not connected.`);
     }
 
-    const metadata = integration.metadata as { accessToken: string; refreshToken?: string; expiresAt?: string };
+    const metadata = integration.metadata as {
+      accessToken: string;
+      refreshToken?: string;
+      expiresAt?: string;
+    };
+    const accessToken = await this.encryption.decryptIfEncrypted(metadata.accessToken);
+    const refreshToken = await this.encryption.decryptIfEncrypted(metadata.refreshToken);
 
-    if (provider === 'google_workspace' && metadata.refreshToken) {
+    if (provider === 'google_workspace' && refreshToken) {
       const isExpired = !metadata.expiresAt || new Date(metadata.expiresAt) <= new Date();
       if (isExpired) {
-        const refreshed = await this.oauthService.refreshGoogleToken(metadata.refreshToken);
+        const refreshed = await this.oauthService.refreshGoogleToken(refreshToken);
         const newExpiresAt = new Date(Date.now() + refreshed.expiresIn * 1000).toISOString();
         await this.prisma.integration.update({
           where: { id: integration.id },
-          data: { metadata: { ...metadata, accessToken: refreshed.accessToken, expiresAt: newExpiresAt } },
+          data: {
+            metadata: {
+              ...metadata,
+              accessToken: await this.encryption.encrypt(refreshed.accessToken),
+              refreshToken: await this.encryption.encrypt(refreshToken),
+              expiresAt: newExpiresAt,
+            },
+          },
         });
         return refreshed.accessToken;
       }
     }
 
-    return metadata.accessToken;
+    if (!accessToken) {
+      throw new BadRequestException(`${provider} is not connected.`);
+    }
+
+    return accessToken;
   }
 
   async listForUser(userId: string) {
@@ -136,11 +157,21 @@ export class IntegrationsService {
     };
   }
 
-  async connectOAuth(userId: string, provider: IntegrationProvider, accessToken: string, refreshToken: string, expiresIn?: number) {
+  async connectOAuth(
+    userId: string,
+    provider: IntegrationProvider,
+    accessToken: string,
+    refreshToken: string,
+    expiresIn?: number,
+  ) {
     const type = this.integrationType(provider);
     const label = CATALOG.find((c) => c.provider === provider)?.name ?? provider;
     const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : undefined;
-    const metadata = { accessToken, refreshToken, ...(expiresAt ? { expiresAt } : {}) };
+    const metadata = {
+      accessToken: await this.encryption.encrypt(accessToken),
+      refreshToken: refreshToken ? await this.encryption.encrypt(refreshToken) : '',
+      ...(expiresAt ? { expiresAt } : {}),
+    };
 
     return this.prisma.integration.upsert({
       where: { userId_type: { userId, type } },
@@ -162,7 +193,9 @@ export class IntegrationsService {
     const entry = CATALOG.find((c) => c.key === key);
     if (!entry?.provider) return { success: true };
 
-    await this.prisma.integration.deleteMany({ where: { userId, type: this.integrationType(entry.provider) } });
+    await this.prisma.integration.deleteMany({
+      where: { userId, type: this.integrationType(entry.provider) },
+    });
     return { success: true };
   }
 }

@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { TasksService } from '../tasks/tasks.service';
 import { CalendarService } from '../calendar/calendar.service';
-import { WhatsAppService } from '../channels/whatsapp.service';
+import { WhatsAppSenderService } from '../channels/whatsapp-sender.service';
 import { TelegramService } from '../channels/telegram.service';
 import { EmailService } from '../channels/email.service';
 
@@ -22,7 +22,7 @@ export class BriefingService {
     private prisma: PrismaService,
     private tasksService: TasksService,
     private calendarService: CalendarService,
-    private whatsappService: WhatsAppService,
+    private whatsappService: WhatsAppSenderService,
     private telegramService: TelegramService,
     private emailService: EmailService,
     private configService: ConfigService,

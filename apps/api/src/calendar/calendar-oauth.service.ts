@@ -6,7 +6,19 @@ import { firstValueFrom } from 'rxjs';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_SCOPES = ['https://www.googleapis.com/auth/calendar'];
+/**
+ * One Google grant covers everything the assistant does on a user's behalf:
+ * their calendar, plus sending and reading mail. Kept as a single consent
+ * screen deliberately - splitting Gmail into its own connection would mean two
+ * near-identical "Connect Google" buttons for what users think of as one
+ * account. gmail.send is send-only; gmail.readonly is what makes searching and
+ * reading a specific message possible.
+ */
+const GOOGLE_SCOPES = [
+  'https://www.googleapis.com/auth/calendar',
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/gmail.readonly',
+];
 
 const OUTLOOK_AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
 const OUTLOOK_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
@@ -20,6 +32,8 @@ interface OAuthState {
 interface ExchangedTokens {
   accessToken: string;
   refreshToken: string;
+  /** Seconds until the access token expires - stored so it can be refreshed before use rather than after a 401. */
+  expiresIn?: number;
 }
 
 /**
@@ -54,7 +68,9 @@ export class CalendarOAuthService {
     try {
       return this.jwtService.verify<OAuthState>(token);
     } catch {
-      throw new BadRequestException('Invalid or expired calendar-connect link. Please try connecting again.');
+      throw new BadRequestException(
+        'Invalid or expired calendar-connect link. Please try connecting again.',
+      );
     }
   }
 
@@ -107,6 +123,8 @@ export class CalendarOAuthService {
       return {
         accessToken: response.data.access_token,
         refreshToken: response.data.refresh_token ?? '',
+        expiresIn:
+          typeof response.data.expires_in === 'number' ? response.data.expires_in : undefined,
       };
     } catch (error) {
       this.logger.error('Google token exchange failed', error);

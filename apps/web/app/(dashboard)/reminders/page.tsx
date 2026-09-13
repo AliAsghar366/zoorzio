@@ -8,6 +8,7 @@ import { UpgradeBanner } from '@/components/UpgradeBanner';
 import { ShareButton } from '@/components/ShareButton';
 
 type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+type ReminderStatus = 'SCHEDULED' | 'TRIGGERED' | 'SNOOZED' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
 type Filter = 'all' | 'today' | 'upcoming' | 'completed';
 
 interface Recurrence {
@@ -20,7 +21,10 @@ interface Reminder {
   title: string;
   message?: string | null;
   scheduledAt: string;
+  status: ReminderStatus;
+  snoozeCount: number;
   completedAt?: string | null;
+  cancelledAt?: string | null;
   recurrence?: Recurrence | null;
 }
 
@@ -29,6 +33,24 @@ const RECURRENCE_LABEL: Record<RecurrenceFrequency, string> = {
   WEEKLY: 'Weekly',
   MONTHLY: 'Monthly',
 };
+
+const STATUS_LABEL: Record<ReminderStatus, string> = {
+  SCHEDULED: 'Scheduled',
+  TRIGGERED: 'Waiting on you',
+  SNOOZED: 'Snoozed',
+  COMPLETED: 'Done',
+  CANCELLED: 'Cancelled',
+  FAILED: "Couldn't deliver",
+};
+
+/** A reminder nothing further will happen to. */
+function isFinished(reminder: Reminder) {
+  return (
+    reminder.status === 'COMPLETED' ||
+    reminder.status === 'CANCELLED' ||
+    reminder.status === 'FAILED'
+  );
+}
 
 interface SharedReminder {
   shareId: string;
@@ -84,7 +106,9 @@ export default function RemindersPage() {
         scheduledAt: new Date(scheduledAt).toISOString(),
         recurrence: recurrenceFreq ? { freq: recurrenceFreq } : undefined,
       });
-      setReminders((prev) => [...prev, created].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)));
+      setReminders((prev) =>
+        [...prev, created].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)),
+      );
       setTitle('');
       setMessage('');
       setScheduledAt('');
@@ -96,8 +120,22 @@ export default function RemindersPage() {
   };
 
   const completeReminder = async (id: string) => {
-    await api.patch(`/reminders/${id}/complete`);
-    setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, completedAt: new Date().toISOString() } : r)));
+    const updated = await api.patch<Reminder>(`/reminders/${id}/complete`);
+    setReminders((prev) => prev.map((r) => (r.id === id ? updated : r)));
+  };
+
+  const cancelReminder = async (id: string) => {
+    const updated = await api.patch<Reminder>(`/reminders/${id}/cancel`);
+    setReminders((prev) => prev.map((r) => (r.id === id ? updated : r)));
+  };
+
+  const snoozeReminder = async (id: string) => {
+    const updated = await api.patch<Reminder>(`/reminders/${id}/snooze`, { minutes: 60 });
+    setReminders((prev) =>
+      prev
+        .map((r) => (r.id === id ? updated : r))
+        .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)),
+    );
   };
 
   const deleteReminder = async (id: string) => {
@@ -106,13 +144,13 @@ export default function RemindersPage() {
     setReminders((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const upcomingCount = reminders.filter((r) => !r.completedAt).length;
+  const upcomingCount = reminders.filter((r) => !isFinished(r)).length;
 
   const visible = useMemo(() => {
     let list = reminders;
-    if (filter === 'today') list = list.filter((r) => !r.completedAt && isToday(r.scheduledAt));
-    else if (filter === 'upcoming') list = list.filter((r) => !r.completedAt);
-    else if (filter === 'completed') list = list.filter((r) => !!r.completedAt);
+    if (filter === 'today') list = list.filter((r) => !isFinished(r) && isToday(r.scheduledAt));
+    else if (filter === 'upcoming') list = list.filter((r) => !isFinished(r));
+    else if (filter === 'completed') list = list.filter(isFinished);
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -123,18 +161,18 @@ export default function RemindersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white" />
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-white" />
       </div>
     );
   }
 
   return (
-    <div className="text-white pb-4">
+    <div className="pb-4 text-white">
       <h1 className="text-3xl font-bold">Reminders</h1>
 
-      {shareError && <p className="text-red-300 text-sm mt-3">{shareError}</p>}
-      {shareNotice && <p className="text-green-300 text-sm mt-3">{shareNotice}</p>}
+      {shareError && <p className="mt-3 text-sm text-red-300">{shareError}</p>}
+      {shareNotice && <p className="mt-3 text-sm text-green-300">{shareNotice}</p>}
       {createError && <UpgradeBanner message={createError} />}
 
       <input
@@ -149,12 +187,34 @@ export default function RemindersPage() {
       </button>
 
       {showForm && (
-        <form onSubmit={createReminder} className="dashboard-card p-5 mt-3 space-y-3">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Take medicine" required className="dashboard-input" autoFocus />
-          <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Extra detail (optional)" className="dashboard-input" />
+        <form onSubmit={createReminder} className="dashboard-card mt-3 space-y-3 p-5">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Take medicine"
+            required
+            className="dashboard-input"
+            autoFocus
+          />
+          <input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Extra detail (optional)"
+            className="dashboard-input"
+          />
           <div className="flex gap-3">
-            <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className="dashboard-input" required />
-            <select value={recurrenceFreq} onChange={(e) => setRecurrenceFreq(e.target.value as RecurrenceFrequency | '')} className="dashboard-input">
+            <input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              className="dashboard-input"
+              required
+            />
+            <select
+              value={recurrenceFreq}
+              onChange={(e) => setRecurrenceFreq(e.target.value as RecurrenceFrequency | '')}
+              className="dashboard-input"
+            >
               <option value="">Never</option>
               <option value="DAILY">Daily</option>
               <option value="WEEKLY">Weekly</option>
@@ -167,38 +227,66 @@ export default function RemindersPage() {
         </form>
       )}
 
-      <div className="flex gap-2 mt-4 flex-wrap">
+      <div className="mt-4 flex flex-wrap gap-2">
         <FilterPill label="All" active={filter === 'all'} onClick={() => setFilter('all')} />
         <FilterPill label="Today" active={filter === 'today'} onClick={() => setFilter('today')} />
-        <FilterPill label="Upcoming" active={filter === 'upcoming'} onClick={() => setFilter('upcoming')} count={upcomingCount} />
-        <FilterPill label="Completed" active={filter === 'completed'} onClick={() => setFilter('completed')} />
+        <FilterPill
+          label="Upcoming"
+          active={filter === 'upcoming'}
+          onClick={() => setFilter('upcoming')}
+          count={upcomingCount}
+        />
+        <FilterPill
+          label="Completed"
+          active={filter === 'completed'}
+          onClick={() => setFilter('completed')}
+        />
       </div>
 
       {visible.length === 0 ? (
-        <div className="dashboard-card p-8 mt-4 text-center">
-          <p className="text-white/50 text-sm">No reminders here.</p>
+        <div className="dashboard-card mt-4 p-8 text-center">
+          <p className="text-sm text-white/50">No reminders here.</p>
         </div>
       ) : (
-        <div className="space-y-3 mt-4">
+        <div className="mt-4 space-y-3">
           {visible.map((reminder) => (
-            <div key={reminder.id} className={reminder.completedAt ? 'dashboard-card p-4 opacity-60' : 'dashboard-card p-4'}>
+            <div
+              key={reminder.id}
+              className={
+                isFinished(reminder) ? 'dashboard-card p-4 opacity-60' : 'dashboard-card p-4'
+              }
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className={reminder.completedAt ? 'font-medium line-through' : 'font-medium'}>{reminder.title}</p>
-                  {reminder.message && <p className="text-xs text-white/60 mt-0.5">{reminder.message}</p>}
-                  <p className="text-xs text-white/50 mt-0.5">
-                    {reminder.completedAt
+                  <p className={isFinished(reminder) ? 'font-medium line-through' : 'font-medium'}>
+                    {reminder.title}
+                  </p>
+                  {reminder.message && (
+                    <p className="mt-0.5 text-xs text-white/60">{reminder.message}</p>
+                  )}
+                  <p className="mt-0.5 text-xs text-white/50">
+                    {reminder.status === 'COMPLETED' && reminder.completedAt
                       ? `Completed ${formatRelativeTime(reminder.completedAt)}`
-                      : new Date(reminder.scheduledAt).toLocaleString()}
+                      : reminder.status === 'CANCELLED' && reminder.cancelledAt
+                        ? `Cancelled ${formatRelativeTime(reminder.cancelledAt)}`
+                        : new Date(reminder.scheduledAt).toLocaleString()}
+                    <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold">
+                      {STATUS_LABEL[reminder.status]}
+                    </span>
                     {reminder.recurrence && (
-                      <span className="ml-2 text-[10px] font-semibold bg-white/10 rounded-full px-2 py-0.5">
+                      <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold">
                         {RECURRENCE_LABEL[reminder.recurrence.freq]}
+                      </span>
+                    )}
+                    {reminder.snoozeCount > 0 && (
+                      <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold">
+                        Snoozed {reminder.snoozeCount}&times;
                       </span>
                     )}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  {!reminder.completedAt && (
+                <div className="flex shrink-0 items-center gap-3">
+                  {!isFinished(reminder) && (
                     <>
                       <ShareButton
                         resourceType="REMINDER"
@@ -207,12 +295,30 @@ export default function RemindersPage() {
                         onShared={(email) => setShareNotice(`Shared with ${email}`)}
                         onError={setShareError}
                       />
-                      <button onClick={() => completeReminder(reminder.id)} className="text-xs text-white hover:text-white/70">
+                      <button
+                        onClick={() => snoozeReminder(reminder.id)}
+                        className="text-xs text-white/70 hover:text-white"
+                      >
+                        +1 hour
+                      </button>
+                      <button
+                        onClick={() => completeReminder(reminder.id)}
+                        className="text-xs text-white hover:text-white/70"
+                      >
                         Mark done
+                      </button>
+                      <button
+                        onClick={() => cancelReminder(reminder.id)}
+                        className="text-xs text-white/40 hover:text-white/70"
+                      >
+                        Stop
                       </button>
                     </>
                   )}
-                  <button onClick={() => deleteReminder(reminder.id)} className="text-xs text-white/40 hover:text-red-300">
+                  <button
+                    onClick={() => deleteReminder(reminder.id)}
+                    className="text-xs text-white/40 hover:text-red-300"
+                  >
                     Delete
                   </button>
                 </div>
@@ -224,14 +330,14 @@ export default function RemindersPage() {
 
       {sharedReminders.length > 0 && (
         <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-3">Shared with me</h2>
+          <h2 className="mb-3 text-lg font-semibold">Shared with me</h2>
           <div className="space-y-2">
             {sharedReminders.map(({ shareId, owner, resource, permission }) => (
               <div key={shareId} className="dashboard-card p-4">
-                <p className="font-medium text-sm">{resource.title}</p>
+                <p className="text-sm font-medium">{resource.title}</p>
                 <p className="text-xs text-white/50">
                   {new Date(resource.scheduledAt).toLocaleString()}
-                  <span className="ml-2 text-[10px] font-semibold bg-white/10 rounded-full px-2 py-0.5">
+                  <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold">
                     From {owner.name || owner.email} · {permission}
                   </span>
                 </p>
@@ -244,9 +350,24 @@ export default function RemindersPage() {
   );
 }
 
-function FilterPill({ label, active, onClick, count }: { label: string; active: boolean; onClick: () => void; count?: number }) {
+function FilterPill({
+  label,
+  active,
+  onClick,
+  count,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  count?: number;
+}) {
   return (
-    <button onClick={onClick} className={active ? 'dashboard-pill active text-xs py-1.5 px-3' : 'dashboard-pill text-xs py-1.5 px-3'}>
+    <button
+      onClick={onClick}
+      className={
+        active ? 'dashboard-pill active px-3 py-1.5 text-xs' : 'dashboard-pill px-3 py-1.5 text-xs'
+      }
+    >
       {label} {typeof count === 'number' && count > 0 ? count : ''}
     </button>
   );

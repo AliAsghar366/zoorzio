@@ -33,6 +33,7 @@
     "db:migrate": "npm run migrate:dev --workspace=@anchor/database",
     "migration:run": "npm run migrate:deploy --workspace=@anchor/database",
     "db:seed": "npm run seed --workspace=@anchor/database",
+    "whatsapp:template": "node scripts/whatsapp-reminder-template.js",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
     "prepare": "husky install || exit 0"
   },

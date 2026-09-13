@@ -65,6 +65,10 @@ model User {
   channelVerifications    ChannelVerification[]
   boards                  Board[]
   channelCredentials      ChannelCredential[]
+  contacts                Contact[]
+  toolExecutions          ToolExecution[]
+  actionPermissions       ActionPermission[]
+  whatsAppBusinessConnections WhatsAppBusinessConnection[]
 
   @@map("users")
 }
@@ -371,7 +375,14 @@ model Reminder {
   title         String
   message       String?
   scheduledAt   DateTime
+  // Lifecycle state, driven by the cron in RemindersService and by WhatsApp
+  // interactive button replies (done/snooze/stop) - see ReminderStatus below.
+  // SCHEDULED is the only state the cron's atomic claim will pick up, which is
+  // what makes concurrent cron instances safe (see processDueReminders).
+  status        ReminderStatus @default(SCHEDULED)
+  snoozeCount   Int       @default(0)
   completedAt   DateTime?
+  cancelledAt   DateTime?
   lastTriggeredAt DateTime?
   recurrence    Json?
   metadata      Json      @default("{}")
@@ -385,7 +396,18 @@ model Reminder {
 
   @@index([userId])
   @@index([scheduledAt])
+  @@index([status, scheduledAt])
   @@map("reminders")
+}
+
+enum ReminderStatus {
+  SCHEDULED
+  TRIGGERED
+  SNOOZED
+  COMPLETED
+  CANCELLED
+  // Could not be delivered to any channel after every retry.
+  FAILED
 }
 
 // Lists (shopping, to-do, ideas) - distinct from a single Task/Reminder,
@@ -567,8 +589,9 @@ model ChannelCredential {
   userId                   String
   type                     ChannelType
   encryptedToken           String
-  // Slack's signing secret, WhatsApp's verify token, etc - a second secret
-  // some platforms need alongside the primary token. Encrypted the same way.
+  // Slack's signing secret, WhatsApp's app secret (used to verify the
+  // X-Hub-Signature-256 on inbound webhooks), etc - a second secret some
+  // platforms need alongside the primary token. Encrypted the same way.
   encryptedSecondaryToken  String?
   // Opaque, randomly generated, non-guessable routing key embedded in the
   // per-user webhook URL (Telegram/Slack) so an inbound HTTP call can look
@@ -664,6 +687,174 @@ enum IntegrationType {
   TRELLO
   ASANA
   CUSTOM
+}
+
+// A person the user might want to schedule a meeting with, email, or message
+// via the chat/WhatsApp agent - resolved by name via the `find_contact` tool.
+// Deliberately separate from Friendship (a mutual in-app social connection):
+// a Contact requires no reciprocal action, just like an address-book entry.
+model Contact {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  phone       String?
+  email       String?
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, name])
+  @@map("contacts")
+}
+
+// One record per external side-effecting tool call the chat/WhatsApp agent
+// makes (calendar create/update, Gmail send, etc). Serves two purposes:
+//  1. Idempotency - a SUCCESS row with a matching (userId, toolName, argsHash)
+//     within the replay window short-circuits a retried call instead of
+//     re-hitting the external API (e.g. a timed-out-but-actually-succeeded
+//     Google Calendar create).
+//  2. Confirmation gating - when ActionPolicyService requires confirmation for
+//     a tool, execution pauses at AWAITING_CONFIRMATION until a WhatsApp
+//     button reply (whose id embeds this row's id) resolves it.
+model ToolExecution {
+  id                 String              @id @default(cuid())
+  userId             String
+  toolName           String
+  argsHash           String
+  args               Json
+  status             ToolExecutionStatus @default(PENDING)
+  resultSummary      String?
+  externalResourceId String?
+  errorMessage       String?
+  createdAt          DateTime            @default(now())
+  completedAt        DateTime?
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, toolName, argsHash, createdAt])
+  @@map("tool_executions")
+}
+
+enum ToolExecutionStatus {
+  PENDING
+  AWAITING_CONFIRMATION
+  EXECUTING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+// Per-user override of the default auto/confirm policy for a given tool name
+// (see ActionPolicyService, which owns the default map and is the only place
+// that decides policy - the LLM never sees or sets this).
+model ActionPermission {
+  id        String   @id @default(cuid())
+  userId    String
+  toolName  String
+  mode      ActionPermissionMode
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, toolName])
+  @@map("action_permissions")
+}
+
+enum ActionPermissionMode {
+  AUTO
+  CONFIRM
+}
+
+// Zoorzio's own WhatsApp Business number, connected to Cloud API through
+// Embedded Signup. With coexistence (isOnBizApp) the number also stays live in
+// the WhatsApp Business app. Platform-level rather than per-user: one active
+// connection is what every user's WhatsApp traffic goes through.
+model WhatsAppBusinessConnection {
+  id                    String   @id @default(cuid())
+  phoneNumberId         String   @unique
+  wabaId                String
+  businessId            String?
+  // Digits only, e.g. 447848472822 - matched against account_update webhooks.
+  displayPhoneNumber    String?
+  // Business Integration System User token from the signup code exchange,
+  // encrypted with EncryptionService.
+  encryptedAccessToken  String
+  isOnBizApp            Boolean  @default(false)
+  platformType          String?
+  status                WhatsAppBusinessConnectionStatus @default(ACTIVE)
+  // Meta allows each sync once, within 24 hours of onboarding.
+  contactsSyncRequestId String?
+  contactsSyncStartedAt DateTime?
+  historySyncRequestId  String?
+  historySyncStartedAt  DateTime?
+  historySyncDeclined   Boolean  @default(false)
+  historySyncProgress   Int?
+  lastSyncError         String?
+  connectedByUserId     String?
+  connectedAt           DateTime @default(now())
+  disconnectedAt        DateTime?
+  disconnectReason      String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  connectedBy           User?    @relation(fields: [connectedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@map("whatsapp_business_connections")
+}
+
+enum WhatsAppBusinessConnectionStatus {
+  ACTIVE
+  DISCONNECTED
+}
+
+// Unofficial WhatsApp connection (QR-linked, via Baileys) - a second,
+// ToS-violating transport for the same platform number, used instead of the
+// official Cloud API when the business chooses to accept that risk rather
+// than wait on Meta Tech Provider approval. Deliberately kept as its own
+// model/service rather than folded into WhatsAppBusinessConnection: the two
+// are structurally unrelated (no Meta app, no access token, no webhook) and
+// mixing them would make it easy to accidentally run both against the same
+// number at once.
+model WhatsAppUnofficialSession {
+  // Single row ("default") - one platform-wide linked session, mirroring how
+  // WhatsAppBusinessConnection.getActiveCredentials() treats the platform
+  // number as a single global connection rather than per-user.
+  id              String                      @id @default("default")
+  status          WhatsAppUnofficialStatus    @default(DISCONNECTED)
+  // Digits only, populated once Baileys reports the linked account's own id.
+  connectedNumber String?
+  lastError       String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  @@map("whatsapp_unofficial_sessions")
+}
+
+enum WhatsAppUnofficialStatus {
+  DISCONNECTED
+  CONNECTING
+  CONNECTED
+}
+
+// Baileys' auth state (the pairing credentials plus every Signal-protocol key
+// it accumulates) persisted here instead of the filesystem, so the linked
+// session survives a Railway redeploy without a persistent volume. One row
+// per (type, id) key Baileys asks for, plus a single row of type "creds" for
+// the top-level AuthenticationCreds blob - see WhatsAppUnofficialAuthStore.
+// Every value is encrypted with EncryptionService: this is session key
+// material equivalent to the linked-device credential itself.
+model WhatsAppUnofficialAuthKey {
+  // "<type>:<id>", e.g. "creds" or "app-state-sync-key:abc123".
+  id             String   @id
+  encryptedValue String
+  updatedAt      DateTime @updatedAt
+
+  @@map("whatsapp_unofficial_auth_keys")
 }
 
 // API keys for developer access

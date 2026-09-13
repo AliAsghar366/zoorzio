@@ -45,6 +45,21 @@ export class RemindersController {
     return this.remindersService.complete(req.user.id, id);
   }
 
+  @Patch(':id/cancel')
+  @ApiOperation({ summary: 'Cancel a reminder so it never fires again' })
+  @ApiResponse({ status: 200, description: 'Reminder cancelled' })
+  cancel(@Request() req: any, @Param('id') id: string) {
+    return this.remindersService.cancel(req.user.id, id);
+  }
+
+  @Patch(':id/snooze')
+  @ApiOperation({ summary: 'Push a reminder back so it fires again later' })
+  @ApiResponse({ status: 200, description: 'Reminder snoozed' })
+  snooze(@Request() req: any, @Param('id') id: string, @Body() body: { minutes?: number }) {
+    const minutes = typeof body?.minutes === 'number' && body.minutes > 0 ? body.minutes : 60;
+    return this.remindersService.snooze(req.user.id, id, minutes * 60 * 1000);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a reminder' })
   @ApiResponse({ status: 200, description: 'Reminder deleted' })

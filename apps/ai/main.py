@@ -16,17 +16,20 @@ CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
 EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 TRANSCRIPTION_MODEL = os.getenv("OPENAI_TRANSCRIPTION_MODEL", "whisper-1")
 
-# Grok (xAI) is OpenAI-API-compatible for chat completions, so it's used as a
-# drop-in alternative chat provider - just a different base_url/key/model on
-# the same AsyncOpenAI client. It does NOT offer embeddings/transcription, so
-# those stay on the OpenAI client below regardless of whether Grok is set.
-GROK_API_KEY = os.getenv("GROK_API_KEY")
-GROK_BASE_URL = os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
-GROK_CHAT_MODEL = os.getenv("GROK_CHAT_MODEL", "grok-2-latest")
+# Grok (xAI) is the primary chat provider. It's OpenAI-API-compatible for chat
+# completions, so it's a drop-in - just a different base_url/key/model on the
+# same AsyncOpenAI client. It does NOT offer embeddings/transcription, so those
+# stay on the OpenAI client below regardless.
+#
+# XAI_API_KEY is the documented name; GROK_API_KEY is still read so existing
+# deployments configured before the rename keep working.
+GROK_API_KEY = os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY")
+GROK_BASE_URL = os.getenv("XAI_BASE_URL") or os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
+GROK_CHAT_MODEL = os.getenv("XAI_CHAT_MODEL") or os.getenv("GROK_CHAT_MODEL", "grok-4")
 
 # Groq (distinct from Grok/xAI above) is also OpenAI-API-compatible for chat
-# completions - same drop-in pattern. Takes priority over Grok/OpenAI for chat
-# when configured; embeddings/transcription still always use the OpenAI client.
+# completions - same drop-in pattern. Kept as a fallback below Grok and OpenAI;
+# embeddings/transcription still always use the OpenAI client.
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
 GROQ_CHAT_MODEL = os.getenv("GROQ_CHAT_MODEL", "openai/gpt-oss-120b")
@@ -60,20 +63,20 @@ def require_client() -> AsyncOpenAI:
 
 
 def resolve_chat_client_and_model() -> tuple[AsyncOpenAI, str]:
-    """Groq takes priority when configured, then Grok, then OpenAI as the
+    """Grok/xAI takes priority when configured, then OpenAI, then Groq as the
     final fallback. Resolved fresh on every call (not cached at import time)
     so it reflects the current state of `client`/`grok_client`/`groq_client`
     - important both for tests that monkeypatch these and for correctness if
     they are ever reconfigured without a process restart."""
-    if groq_client is not None:
-        return groq_client, GROQ_CHAT_MODEL
     if grok_client is not None:
         return grok_client, GROK_CHAT_MODEL
     if client is not None:
         return client, CHAT_MODEL
+    if groq_client is not None:
+        return groq_client, GROQ_CHAT_MODEL
     raise HTTPException(
         status_code=503,
-        detail="Neither GROQ_API_KEY, GROK_API_KEY, nor OPENAI_API_KEY is configured on the AI service",
+        detail="Neither XAI_API_KEY, OPENAI_API_KEY, nor GROQ_API_KEY is configured on the AI service",
     )
 
 
@@ -390,12 +393,17 @@ ZOORZIO_SYSTEM_PROMPT = (
     "Anything the user can do by hand in the app, you can do for them here in chat - and you "
     "should prefer doing it over just describing it. Be concise and warm.\n\n"
     "WHAT YOU CAN DO (call the matching tool for these - don't just describe it):\n"
-    "- Reminders: create, list, complete, delete (one-off or recurring: daily/weekly/monthly)\n"
+    "- Reminders: create, list, complete, snooze (remind me again in an hour), delete "
+    "(one-off or recurring: daily/weekly/monthly)\n"
     "- Tasks & Boards: create/list/complete/delete tasks with priority and due dates; create/list boards\n"
     "- Lists: add items (creates the list if needed), view lists, check off items, delete lists\n"
     "- Memories: save a note, search past notes\n"
-    "- Calendar: view upcoming events, create an event (works even with no calendar connected - "
-    "a personal calendar is created automatically), delete an event\n"
+    "- Calendar: view upcoming events, search for an event, create an event (with a Google "
+    "Meet link and emailed invitations when their Google account is connected), change an "
+    "event, cancel an event\n"
+    "- Contacts: look up someone by name to get their email/phone, save a new contact\n"
+    "- Email: send an email from their connected Google account, search their Gmail, read a "
+    "specific message\n"
     "- Friends: send a friend request, view friends, view/respond to incoming requests, send a "
     "friend a reminder\n"
     "- Master Zoorzio: report the user's achievement progress\n"
@@ -411,6 +419,16 @@ ZOORZIO_SYSTEM_PROMPT = (
     "Calendar, or Profile) instead of claiming you did it.\n\n"
     "If a tool call fails because a feature isn't connected (e.g. \"GitHub isn't connected yet\"), "
     "relay that message to the user plainly - don't retry or invent a workaround.\n\n"
+    "REACHING REAL PEOPLE: an email or a calendar invitation goes to an actual person and "
+    "cannot be taken back, so never guess an address. When the user names someone without "
+    "giving an address, call find_contact first. If it reports several matches, ask which "
+    "one they meant. If it finds nobody, ask the user rather than constructing an address "
+    "from their name.\n\n"
+    "NEVER say something is done before the tool result says it is. The tool result is the "
+    "only evidence that an email really sent or an event really got created - report what "
+    "it actually says, including failures.\n\n"
+    "Some actions come back saying they need the user confirmation. That is expected - the "
+    "user is being asked separately, so just let them know it is waiting on their approval.\n\n"
     "If the user asks what you can do, summarize the list above in your own words rather than "
     "reciting it verbatim.\n\n"
     "SCOPE: You must ONLY answer questions about the Zoorzio product and the user's own "

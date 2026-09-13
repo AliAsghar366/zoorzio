@@ -26,6 +26,7 @@ import { FriendsModule } from './friends/friends.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { BoardsModule } from './boards/boards.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { ContactsModule } from './contacts/contacts.module';
 import { CronModule } from './cron/cron.module';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { JwtOrApiKeyGuard } from './auth/guards/jwt-or-api-key.guard';
@@ -46,10 +47,12 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     }),
 
     // Rate limiting
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
 
     // Cron jobs (reminder delivery, daily briefings). @nestjs/schedule's
     // in-process timers never fire reliably on Vercel serverless functions
@@ -83,6 +86,7 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
     GamificationModule,
     BoardsModule,
     IntegrationsModule,
+    ContactsModule,
     CronModule,
   ],
   providers: [
@@ -135,8 +139,6 @@ import { CorrelationIdMiddleware } from './common/middleware/correlation-id.midd
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply middleware to all routes
-    consumer
-      .apply(RequestIdMiddleware, CorrelationIdMiddleware)
-      .forRoutes('*');
+    consumer.apply(RequestIdMiddleware, CorrelationIdMiddleware).forRoutes('*');
   }
 }

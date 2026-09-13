@@ -150,7 +150,32 @@ def test_chat_prefers_grok_over_openai_when_both_configured(test_client, monkeyp
     assert seen_models == ["grok-test-model"]
 
 
-def test_chat_prefers_groq_over_grok_and_openai_when_all_configured(test_client, monkeypatch):
+def test_chat_prefers_grok_over_groq_and_openai_when_all_configured(test_client, monkeypatch):
+    """Grok/xAI is the product's chosen provider, so it wins whenever it is
+    configured - Groq is only a last-resort fallback."""
+    seen_models = []
+
+    class FakeGrokChatCompletions:
+        async def create(self, **kwargs):
+            seen_models.append(kwargs.get("model"))
+            message = SimpleNamespace(content="Grok reply", tool_calls=None)
+            return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+    fake_grok = FakeOpenAIClient({})
+    fake_grok.chat = SimpleNamespace(completions=FakeGrokChatCompletions())
+    monkeypatch.setattr(main, "grok_client", fake_grok)
+    monkeypatch.setattr(main, "groq_client", FakeOpenAIClient({}))
+    monkeypatch.setattr(main, "client", FakeOpenAIClient({}))
+    monkeypatch.setattr(main, "GROK_CHAT_MODEL", "grok-test-model")
+
+    response = test_client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}]})
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == "Grok reply"
+    assert seen_models == ["grok-test-model"]
+
+
+def test_chat_falls_back_to_groq_only_when_nothing_else_is_configured(test_client, monkeypatch):
     seen_models = []
 
     class FakeGroqChatCompletions:
@@ -162,7 +187,8 @@ def test_chat_prefers_groq_over_grok_and_openai_when_all_configured(test_client,
     fake_groq = FakeOpenAIClient({})
     fake_groq.chat = SimpleNamespace(completions=FakeGroqChatCompletions())
     monkeypatch.setattr(main, "groq_client", fake_groq)
-    monkeypatch.setattr(main, "grok_client", FakeOpenAIClient({}))
+    monkeypatch.setattr(main, "grok_client", None)
+    monkeypatch.setattr(main, "client", None)
     monkeypatch.setattr(main, "GROQ_CHAT_MODEL", "groq-test-model")
 
     response = test_client.post("/chat", json={"messages": [{"role": "user", "content": "hi"}]})
@@ -172,7 +198,7 @@ def test_chat_prefers_groq_over_grok_and_openai_when_all_configured(test_client,
     assert seen_models == ["groq-test-model"]
 
 
-def test_chat_falls_back_to_openai_when_groq_and_grok_not_configured(test_client, monkeypatch):
+def test_chat_falls_back_to_openai_when_grok_not_configured(test_client, monkeypatch):
     class FakePlainChatCompletions:
         async def create(self, **kwargs):
             message = SimpleNamespace(content="OpenAI reply", tool_calls=None)

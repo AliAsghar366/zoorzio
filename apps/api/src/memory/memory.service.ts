@@ -41,7 +41,17 @@ export class MemoryService {
   async create(userId: string, createMemoryDto: CreateMemoryDto) {
     await this.planLimits.assertCanCreate(userId, 'memories');
 
-    const { content, type, source, metadata, tags } = createMemoryDto;
+    // `type` and `source` are optional on the DTO but NOT NULL in the database,
+    // so the defaults the API advertises have to be applied here rather than
+    // left to Swagger's `default:` annotation, which is documentation only.
+    // Omitting either one previously failed the insert.
+    const {
+      content,
+      type = MemoryType.NOTE,
+      source = ChannelType.NATIVE_APP,
+      metadata,
+      tags,
+    } = createMemoryDto;
 
     // Generate summary using AI
     const summary = await this.aiService.generateSummary(content);
@@ -54,8 +64,8 @@ export class MemoryService {
         userId,
         content,
         summary,
-        type: type as MemoryType,
-        source: source as ChannelType,
+        type,
+        source,
         metadata: metadata || {},
         tags: tags || [],
       },
@@ -100,8 +110,8 @@ export class MemoryService {
     // If search query provided, use semantic search
     if (search) {
       const searchResults = await this.searchService.search(userId, search, limit);
-      const memoryIds = searchResults.map(r => r.id);
-      
+      const memoryIds = searchResults.map((r) => r.id);
+
       return this.prisma.memory.findMany({
         where: {
           id: { in: memoryIds },
@@ -175,8 +185,8 @@ export class MemoryService {
       where: { id },
       data: {
         content: content || undefined,
-        type: type as MemoryType || undefined,
-        source: source as ChannelType || undefined,
+        type: (type as MemoryType) || undefined,
+        source: (source as ChannelType) || undefined,
         metadata: metadata || undefined,
         tags: tags || undefined,
         isVerified: isVerified === undefined ? undefined : isVerified,
