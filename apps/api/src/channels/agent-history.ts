@@ -6,9 +6,9 @@ export const AGENT_HISTORY_LIMIT = 15;
 /**
  * Replays a channel's recent thread so the agent can follow context across
  * messages - this is what lets "schedule a meeting with Ahmed" / "tomorrow at
- * 4" work as one request split over two messages. Shared between every
- * WhatsApp transport (official Cloud API, the unofficial QR-linked one) so a
- * conversation reads identically regardless of which one delivered it.
+ * 4" work as one request split over two messages. Shared by every messaging
+ * transport (WhatsApp Cloud API, QR-linked WhatsApp, Telegram) so a
+ * conversation reads identically whichever one delivered it.
  */
 export async function buildAgentHistory(
   prisma: PrismaService,

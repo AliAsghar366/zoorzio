@@ -262,13 +262,22 @@ export class ChannelsController {
     return this.whatsappService.handleWebhook(payload);
   }
 
-  // Telegram Webhook (called by Telegram)
+  // Shared-bot Telegram webhook. The URL is public, so every call must carry
+  // the secret registered with setWebhook (see verifyWebhookSecret).
   @Public()
   @Post('telegram/webhook')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Telegram webhook handler' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
-  async handleTelegramWebhook(@Body() payload: any) {
+  @ApiResponse({ status: 403, description: 'Missing or invalid secret token' })
+  async handleTelegramWebhook(
+    @Headers('x-telegram-bot-api-secret-token') secretToken: string | undefined,
+    @Body() payload: any,
+  ) {
+    if (!this.telegramService.verifyWebhookSecret(secretToken)) {
+      throw new ForbiddenException('Invalid Telegram secret token');
+    }
+
     return this.telegramService.handleWebhook(payload);
   }
 

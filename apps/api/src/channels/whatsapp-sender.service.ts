@@ -16,6 +16,7 @@ import { WhatsAppUnofficialService } from './whatsapp-unofficial.service';
 @Injectable()
 export class WhatsAppSenderService {
   constructor(
+    @Inject(forwardRef(() => WhatsAppService))
     private readonly official: WhatsAppService,
     @Inject(forwardRef(() => WhatsAppUnofficialService))
     private readonly unofficial: WhatsAppUnofficialService,

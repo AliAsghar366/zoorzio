@@ -26,12 +26,11 @@ const MAX_DELIVERY_ATTEMPTS = 3;
 const DELIVERY_RETRY_DELAY_MS = 5 * 60 * 1000;
 
 /**
- * prompted    - the user got something they can act on (WhatsApp buttons)
- * delivered   - they were told, but can't answer from there (e.g. Telegram)
+ * prompted    - the user got buttons they can act on (WhatsApp or Telegram)
  * failed      - there was somewhere to send it and nothing got through
  * unreachable - no channel that can receive a reminder is connected
  */
-type DeliveryOutcome = 'prompted' | 'delivered' | 'failed' | 'unreachable';
+type DeliveryOutcome = 'prompted' | 'failed' | 'unreachable';
 
 @Injectable()
 export class RemindersService {
@@ -41,6 +40,7 @@ export class RemindersService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => WhatsAppSenderService))
     private whatsappService: WhatsAppSenderService,
+    @Inject(forwardRef(() => TelegramService))
     private telegramService: TelegramService,
     private planLimits: PlanLimitsService,
     private notificationsService: NotificationsService,
@@ -188,11 +188,8 @@ export class RemindersService {
   }
 
   /**
-   * Sends a reminder over every channel the user has connected, and reports
-   * what came of it.
-   *
-   * WhatsApp gets the three action buttons; other channels get plain text,
-   * since they have no equivalent.
+   * Sends a reminder with Done / In an hour / Don't remind me buttons over
+   * every channel the user has connected, and reports what came of it.
    */
   private async deliver(reminder: Reminder): Promise<DeliveryOutcome> {
     const channels = await this.prisma.channel.findMany({
@@ -209,15 +206,24 @@ export class RemindersService {
       : `🔔 ${reminder.title}`;
 
     const results = await Promise.all(
-      deliverable.map(async (channel): Promise<'prompted' | 'delivered' | 'failed'> => {
+      deliverable.map(async (channel): Promise<'prompted' | 'failed'> => {
         try {
           if (channel.type === 'WHATSAPP') {
             const sent = await this.sendWhatsAppPrompt(reminder, channel.externalId, text);
             return sent ? 'prompted' : 'failed';
           }
 
-          await this.telegramService.sendMessage(reminder.userId, Number(channel.externalId), text);
-          return 'delivered';
+          await this.telegramService.sendButtons(
+            reminder.userId,
+            Number(channel.externalId),
+            text,
+            [
+              { id: reminderButtonId(reminder.id, 'done'), title: 'Done' },
+              { id: reminderButtonId(reminder.id, 'snooze'), title: 'In an hour' },
+              { id: reminderButtonId(reminder.id, 'stop'), title: "Don't remind me" },
+            ],
+          );
+          return 'prompted';
         } catch (error) {
           this.logger.error(`Failed to deliver reminder to channel ${channel.id}`, error);
           return 'failed';
@@ -225,9 +231,7 @@ export class RemindersService {
       }),
     );
 
-    if (results.includes('prompted')) return 'prompted';
-    if (results.includes('delivered')) return 'delivered';
-    return 'failed';
+    return results.includes('prompted') ? 'prompted' : 'failed';
   }
 
   /**
@@ -349,8 +353,7 @@ export class RemindersService {
           await this.prisma.reminder.update({ where: { id: reminder.id }, data: resetAttempts });
         }
       } else {
-        // Delivered somewhere they can't answer, or nowhere at all: there is
-        // nothing to wait for.
+        // No channel to send it to: there is nothing to wait for.
         await this.prisma.reminder.update({
           where: { id: reminder.id },
           data: { status: ReminderStatus.COMPLETED, completedAt: now },

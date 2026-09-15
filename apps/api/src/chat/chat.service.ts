@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AIService } from '../ai/ai.service';
 import { SearchService } from '../search/search.service';
@@ -16,7 +16,6 @@ import { NotionApiService } from '../integrations/providers/notion-api.service';
 import { GoogleWorkspaceApiService } from '../integrations/providers/google-workspace-api.service';
 import { SlackTeamApiService } from '../integrations/providers/slack-team-api.service';
 import { ChannelLinkingService } from '../channels/channel-linking.service';
-import { WhatsAppSenderService } from '../channels/whatsapp-sender.service';
 import { confirmButtonId } from '../channels/interactive-reply.service';
 import { ContactsService } from '../contacts/contacts.service';
 import { ActionPolicyService } from '../security/action-policy.service';
@@ -25,6 +24,11 @@ import { UsersService } from '../users/users.service';
 import { MemoryType, ChannelType } from '@anchor/database';
 import { ChatMessageDto } from './dto/chat.dto';
 import { TOOLS } from './tools';
+
+/** How the conversation's own channel shows a yes/no question as tappable buttons. */
+export interface ButtonPrompter {
+  sendButtons(text: string, buttons: { id: string; title: string }[]): Promise<unknown>;
+}
 
 /**
  * Tools that change something outside Zoorzio. Only these get an execution
@@ -72,13 +76,15 @@ export class ChatService {
     private contactsService: ContactsService,
     private toolExecutions: ToolExecutionService,
     private actionPolicy: ActionPolicyService,
-    // Used to offer confirmation buttons on WhatsApp; circular because the
-    // WhatsApp channel is also what invokes this service.
-    @Inject(forwardRef(() => WhatsAppSenderService))
-    private whatsappService: WhatsAppSenderService,
   ) {}
 
-  async reply(userId: string, messages: ChatMessageDto[], userName?: string): Promise<string> {
+  /** `prompter` is passed by a messaging channel so confirmations become buttons in that conversation. */
+  async reply(
+    userId: string,
+    messages: ChatMessageDto[],
+    userName?: string,
+    prompter?: ButtonPrompter,
+  ): Promise<string> {
     const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
 
     // An answer to a question the user was asked ("Send this email? yes") is
@@ -98,7 +104,7 @@ export class ChatService {
 
     if (toolCalls && toolCalls.length > 0) {
       const results = await Promise.all(
-        toolCalls.map((call) => this.executeTool(userId, call.name, call.arguments)),
+        toolCalls.map((call) => this.executeTool(userId, call.name, call.arguments, prompter)),
       );
       return results.join('\n');
     }
@@ -161,7 +167,12 @@ export class ChatService {
     return "Okay, I've left that alone.";
   }
 
-  private async executeTool(userId: string, name: string, argsJson: string): Promise<string> {
+  private async executeTool(
+    userId: string,
+    name: string,
+    argsJson: string,
+    prompter?: ButtonPrompter,
+  ): Promise<string> {
     let args: Record<string, any>;
     try {
       args = JSON.parse(argsJson);
@@ -194,7 +205,7 @@ export class ChatService {
 
     if (await this.actionPolicy.requiresConfirmation(userId, name)) {
       const execution = await this.toolExecutions.awaitConfirmation(userId, name, argsHash, args);
-      return this.askForConfirmation(userId, name, args, execution.id);
+      return this.askForConfirmation(userId, name, args, execution.id, prompter);
     }
 
     const execution = await this.toolExecutions.start(userId, name, argsHash, args);
@@ -210,25 +221,22 @@ export class ChatService {
   }
 
   /**
-   * Asks the user to approve an action. On WhatsApp that's two buttons; on any
-   * other surface it's a question they can answer in words, which
-   * resolvePendingConfirmation picks up on their next message.
+   * Asks the user to approve an action - as buttons on the channel the
+   * conversation is actually happening on, when it has them; otherwise as a
+   * question resolvePendingConfirmation picks up from their next message.
    */
   private async askForConfirmation(
     userId: string,
     toolName: string,
     args: Record<string, any>,
     executionId: string,
+    prompter?: ButtonPrompter,
   ): Promise<string> {
     const question = describeAction(toolName, args);
 
-    const channel = await this.prisma.channel.findFirst({
-      where: { userId, type: ChannelType.WHATSAPP, isActive: true },
-    });
-
-    if (channel) {
+    if (prompter) {
       try {
-        await this.whatsappService.sendButtons(userId, channel.externalId, question, [
+        await prompter.sendButtons(question, [
           { id: confirmButtonId(executionId, 'yes'), title: 'Yes, do it' },
           { id: confirmButtonId(executionId, 'no'), title: 'No, cancel' },
         ]);

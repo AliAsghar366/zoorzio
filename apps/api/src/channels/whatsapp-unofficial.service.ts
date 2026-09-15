@@ -9,7 +9,7 @@ import { MemoryService } from '../memory/memory.service';
 import { ChannelLinkingService } from './channel-linking.service';
 import { ChatService } from '../chat/chat.service';
 import { InteractiveReplyService } from './interactive-reply.service';
-import { buildAgentHistory } from './whatsapp-agent-history';
+import { buildAgentHistory } from './agent-history';
 import { useDatabaseAuthState } from './whatsapp-unofficial-auth-store';
 import { WhatsAppButton } from './whatsapp.service';
 
@@ -401,7 +401,9 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   ): Promise<void> {
     try {
       const history = await buildAgentHistory(this.prisma, channelId, latestMessage);
-      const reply = await this.chatService.reply(userId, history, pushName);
+      const reply = await this.chatService.reply(userId, history, pushName, {
+        sendButtons: (question, buttons) => this.sendButtons(userId, from, question, buttons),
+      });
       if (reply?.trim()) await this.sendMessage(userId, from, reply);
     } catch (error) {
       this.logger.error(`Agent failed for user ${userId}`, error);

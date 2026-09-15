@@ -13,7 +13,7 @@ import { ChatService } from '../chat/chat.service';
 import { InteractiveReplyService } from './interactive-reply.service';
 import { WhatsAppBusinessConnectionService } from './whatsapp-business-connection.service';
 import { graphApiVersion } from './whatsapp-graph';
-import { buildAgentHistory } from './whatsapp-agent-history';
+import { buildAgentHistory } from './agent-history';
 import { ChannelType, Prisma } from '@anchor/database';
 
 /**
@@ -422,7 +422,9 @@ export class WhatsAppService {
   ): Promise<void> {
     try {
       const history = await buildAgentHistory(this.prisma, channelId, latestMessage);
-      const reply = await this.chatService.reply(userId, history, contact?.profile?.name);
+      const reply = await this.chatService.reply(userId, history, contact?.profile?.name, {
+        sendButtons: (question, buttons) => this.sendButtons(userId, from, question, buttons),
+      });
 
       if (reply?.trim()) {
         await this.sendMessage(userId, from, reply);

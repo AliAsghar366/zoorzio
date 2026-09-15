@@ -35,8 +35,8 @@ import { UsersModule } from '../users/users.module';
     IntegrationsModule,
     ContactsModule,
     SecurityModule,
-    // The agent both serves and calls the channels layer (an inbound WhatsApp
-    // message runs the agent; the agent replies and offers buttons on it).
+    // Circular: inbound WhatsApp/Telegram messages run the agent, and the agent
+    // uses channel linking to answer questions about connected channels.
     forwardRef(() => ChannelsModule),
     UsersModule,
   ],
