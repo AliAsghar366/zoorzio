@@ -4,11 +4,14 @@ import { Suspense, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ShieldCheck, Rocket, Star, Crown, Camera, X } from 'lucide-react';
-import { Button, Input } from '@anchor/ui';
+import { ArrowLeft, ShieldCheck, Rocket, Star, Crown, Camera, X } from 'lucide-react';
 import { ApiError, login, register } from '@/lib/api';
 
 const MAX_AVATAR_BYTES = 1.5 * 1024 * 1024;
+
+const FIELD =
+  'w-full rounded-xl border border-white/25 bg-white/[0.12] px-4 py-3 text-[15px] text-white placeholder:text-white/55 outline-none transition-colors focus:border-white/60 focus:bg-white/[0.18]';
+const LABEL = 'mb-1.5 ml-1 block text-xs font-medium text-white/90';
 
 function readFileAsDataUri(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -21,7 +24,12 @@ function readFileAsDataUri(file: File): Promise<string> {
 
 const DEMO_PASSWORD = 'Demo@1234';
 const DEMO_ACCOUNTS = [
-  { email: 'admin@anchor.app', label: 'Admin', description: 'Full admin access', icon: ShieldCheck },
+  {
+    email: 'admin@anchor.app',
+    label: 'Admin',
+    description: 'Full admin access',
+    icon: ShieldCheck,
+  },
   { email: 'starter@anchor.app', label: 'Starter', description: 'Starter plan', icon: Rocket },
   { email: 'pro@anchor.app', label: 'Pro', description: 'Pro plan, full demo data', icon: Star },
   { email: 'ultimate@anchor.app', label: 'Ultimate', description: 'Ultimate plan', icon: Crown },
@@ -46,6 +54,9 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [demoLoadingEmail, setDemoLoadingEmail] = useState<string | null>(null);
+
+  // Set when the visitor picked a plan on /pricing before signing up.
+  const chosenPlan = searchParams.get('plan');
 
   const routeAfterLogin = (role: string) => {
     router.push(role === 'ADMIN' ? '/admin' : '/portal');
@@ -96,7 +107,10 @@ function LoginForm() {
         });
         // New accounts get a one-time stop to connect messaging channels
         // before landing in the app - returning logins skip straight through.
-        router.push('/connect-channels');
+        // Someone who picked a plan first goes back to finish choosing it.
+        router.push(
+          chosenPlan ? `/pricing#${encodeURIComponent(chosenPlan)}` : '/connect-channels',
+        );
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong');
@@ -119,253 +133,270 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* Brand panel */}
-      <div className="hidden lg:flex lg:w-[42%] relative overflow-hidden bg-anchor-900 flex-col justify-between p-12">
-        <div className="absolute -top-32 -left-24 w-96 h-96 rounded-full bg-brand-gradient opacity-25 blur-3xl" />
-        <div className="absolute -bottom-40 -right-16 w-96 h-96 rounded-full bg-brand-gradient opacity-20 blur-3xl" />
+    <div
+      className="relative flex min-h-screen items-center justify-center px-4 py-20 text-white"
+      style={{ background: "#2a1c3d url('/candy-bar-bg.png') center/cover no-repeat fixed" }}
+    >
+      <div
+        className="absolute inset-0 backdrop-blur-[3px]"
+        style={{ background: 'linear-gradient(160deg, rgba(34,22,52,0.72), rgba(72,44,110,0.78))' }}
+      />
 
-        <div className="relative flex items-center gap-2.5">
-          <Image
-            src="/zoorzio-icon.png"
-            alt="Zoorzio mascot"
-            width={32}
-            height={32}
-            className="rounded-full object-cover ring-2 ring-white/10"
-          />
-          <span className="text-lg font-bold text-white">Zoorzio</span>
-        </div>
+      <Link
+        href="/"
+        className="absolute left-5 top-5 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm backdrop-blur hover:bg-white/20"
+      >
+        <ArrowLeft size={16} /> Home
+      </Link>
 
-        <div className="relative">
-          <Image
-            src="/zoorzio-icon.png"
-            alt="Zoorzio mascot"
-            width={72}
-            height={72}
-            className="rounded-full object-cover shadow-2xl shadow-black/40 mb-8"
-          />
-          <h1 className="text-3xl font-bold text-white leading-tight mb-4">
-            The memory layer that actually remembers.
-          </h1>
-          <p className="text-anchor-300 leading-relaxed">
-            Reminders, lists, notes, and calendar — unified in one place, and delivered right
-            back to WhatsApp or Telegram when it matters.
-          </p>
-        </div>
-
-        <p className="relative text-xs text-anchor-500">
-          © {new Date().getFullYear()} Zoorzio. All rights reserved.
-        </p>
-      </div>
-
-      {/* Form panel */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12 bg-anchor-50">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden flex flex-col items-center mb-8">
+      <div className="relative z-10 w-full max-w-[400px]">
+        <div className="rounded-3xl border border-white/25 bg-white/[0.14] px-7 pb-8 pt-10 text-center shadow-[0_20px_60px_rgba(20,12,35,0.45)] backdrop-blur-2xl sm:px-8">
+          <div className="mx-auto mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-white/90 shadow-[0_10px_24px_rgba(20,12,35,0.35)]">
             <Image
               src="/zoorzio-icon.png"
-              alt="Zoorzio mascot"
-              width={56}
-              height={56}
-              className="rounded-full object-cover shadow-lg mb-3"
+              alt="Zoorzio"
+              width={52}
+              height={52}
+              className="object-contain"
             />
-            <span className="text-xl font-bold text-gradient">Zoorzio</span>
           </div>
+          <h1 className="text-2xl font-semibold">
+            {mode === 'login' ? 'Welcome back to Zoorzio' : 'Create your account'}
+          </h1>
+          <p className="mb-7 mt-1 text-sm font-light text-white/80">
+            {mode === 'login' ? 'Sign in to open your workspace' : 'Start remembering everything'}
+          </p>
 
-          <div className="card-elevated">
-            <h2 className="text-2xl font-bold text-anchor-800 mb-1">
-              {mode === 'login' ? 'Welcome back' : 'Create your account'}
-            </h2>
-            <p className="text-anchor-500 mb-6 text-sm">
-              {mode === 'login' ? 'Log in to your memory layer' : 'Start remembering everything'}
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === 'register' && (
-                <div className="flex justify-center">
-                  <div className="relative">
+          <form onSubmit={handleSubmit} className="space-y-4 text-left">
+            {mode === 'register' && (
+              <div className="flex flex-col items-center">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-white/40 bg-white/10 transition-colors hover:border-white/80"
+                    aria-label="Add a profile picture (optional)"
+                  >
+                    {avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatar} alt="Your avatar" className="h-full w-full object-cover" />
+                    ) : (
+                      <Camera size={22} className="text-white/70" />
+                    )}
+                  </button>
+                  {avatar && (
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-20 h-20 rounded-full bg-anchor-100 border-2 border-dashed border-anchor-300 flex items-center justify-center overflow-hidden hover:border-primary-400 transition-colors"
-                      aria-label="Add a profile picture (optional)"
+                      onClick={() => {
+                        setAvatar(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#5a3c82] shadow-md"
+                      aria-label="Remove photo"
                     >
-                      {avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={avatar} alt="Your avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        <Camera size={22} className="text-anchor-400" />
-                      )}
+                      <X size={12} />
                     </button>
-                    {avatar && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAvatar(null);
-                          if (fileInputRef.current) fileInputRef.current.value = '';
-                        }}
-                        className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white shadow-md border border-anchor-200 flex items-center justify-center"
-                        aria-label="Remove photo"
-                      >
-                        <X size={12} className="text-anchor-600" />
-                      </button>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                  </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
                 </div>
-              )}
-              {mode === 'register' && avatarError && (
-                <p className="text-xs text-red-500 text-center">{avatarError}</p>
-              )}
-              {mode === 'register' && !avatarError && (
-                <p className="text-xs text-anchor-400 text-center -mt-2">Add a photo (optional)</p>
-              )}
+                <p className={`mt-2 text-xs ${avatarError ? 'text-[#ffd1d9]' : 'text-white/60'}`}>
+                  {avatarError ?? 'Add a photo (optional)'}
+                </p>
+              </div>
+            )}
 
-              {mode === 'register' && (
-                <Input
-                  label="Name"
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="name" className={LABEL}>
+                  Name
+                </label>
+                <input
+                  id="name"
+                  className={FIELD}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ada Lovelace"
+                  placeholder="Your name"
                 />
-              )}
-              <Input
-                label="Email"
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="email" className={LABEL}>
+                Email
+              </label>
+              <input
+                id="email"
                 type="email"
                 required
+                autoComplete="email"
+                className={FIELD}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
               />
-              {mode === 'register' && (
-                <Input
-                  label="Phone (optional)"
+            </div>
+
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="phone" className={LABEL}>
+                  Phone (optional)
+                </label>
+                <input
+                  id="phone"
                   type="tel"
+                  className={FIELD}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+923001234567"
                 />
-              )}
-              {mode === 'register' && (
-                <Input
-                  label="Location (optional)"
+              </div>
+            )}
+
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="location" className={LABEL}>
+                  Location (optional)
+                </label>
+                <input
+                  id="location"
+                  className={FIELD}
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Karachi, Pakistan"
                 />
-              )}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="label !mb-0">Password</label>
-                  {mode === 'login' && (
-                    <Link href="/forgot-password" className="text-xs text-primary-500 hover:text-primary-600">
-                      Forgot password?
-                    </Link>
-                  )}
-                </div>
-                <Input
-                  required
-                  type="password"
-                  minLength={8}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
               </div>
-              {mode === 'register' && (
-                <Input
-                  label="Confirm password"
+            )}
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label htmlFor="password" className={`${LABEL} !mb-0`}>
+                  Password
+                </label>
+                {mode === 'login' && (
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-white/80 underline-offset-2 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
+              <input
+                id="password"
+                required
+                type="password"
+                minLength={8}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                className={FIELD}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="confirm-password" className={LABEL}>
+                  Confirm password
+                </label>
+                <input
+                  id="confirm-password"
                   required
                   type="password"
                   minLength={8}
+                  autoComplete="new-password"
+                  className={FIELD}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                 />
-              )}
+              </div>
+            )}
 
-              {mode === 'register' && (
-                <label className="flex items-start gap-2.5 text-sm text-anchor-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={acceptedPrivacy}
-                    onChange={(e) => setAcceptedPrivacy(e.target.checked)}
-                    required
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-anchor-300 text-primary-500 focus:ring-primary-400"
-                  />
-                  <span>
-                    I have read and accept the{' '}
-                    <Link
-                      href="/privacy"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary-500 hover:text-primary-600 font-medium underline"
-                    >
-                      Privacy Policy
-                    </Link>
-                    , including how Zoorzio handles third-party channels like WhatsApp and Telegram.
-                  </span>
-                </label>
-              )}
+            {mode === 'register' && (
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-white/85">
+                <input
+                  type="checkbox"
+                  checked={acceptedPrivacy}
+                  onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                  required
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/40 bg-white/10 text-[#9283D9] focus:ring-white/50"
+                />
+                <span>
+                  I have read and accept the{' '}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                  , including how Zoorzio handles third-party channels like WhatsApp and Telegram.
+                </span>
+              </label>
+            )}
 
-              {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-[#ffd1d9]">{error}</p>}
 
-              <Button
-                type="submit"
-                className="w-full"
-                loading={loading}
-                disabled={mode === 'register' && !acceptedPrivacy}
-              >
-                {mode === 'login' ? 'Log in' : 'Create account'}
-              </Button>
-            </form>
+            <button
+              type="submit"
+              disabled={loading || (mode === 'register' && !acceptedPrivacy)}
+              className="mt-2 w-full rounded-xl bg-white/90 py-3 text-[15px] font-semibold text-[#5a3c82] shadow-[0_10px_24px_rgba(20,12,35,0.25)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading
+                ? 'Please wait…'
+                : mode === 'login'
+                  ? 'Enter your workspace →'
+                  : 'Create account →'}
+            </button>
+          </form>
 
-            <p className="mt-6 text-sm text-anchor-500 text-center">
-              {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
+          <p className="mt-6 text-sm text-white/80">
+            {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
+            <button
+              type="button"
+              className="font-semibold text-white underline-offset-2 hover:underline"
+              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+            >
+              {mode === 'login' ? 'Sign up' : 'Log in'}
+            </button>
+          </p>
+        </div>
+
+        <div className="mt-5 rounded-3xl border border-white/20 bg-white/10 p-5 backdrop-blur-xl">
+          <p className="mb-1 text-sm font-medium">Try it without signing up</p>
+          <p className="mb-4 text-xs text-white/70">
+            No email system is wired up yet, so use one of these demo accounts instead. Password for
+            all of them: <span className="font-mono text-white">{DEMO_PASSWORD}</span>
+          </p>
+          <div className="space-y-2">
+            {DEMO_ACCOUNTS.map((account) => (
               <button
+                key={account.email}
                 type="button"
-                className="text-primary-500 hover:text-primary-600 font-medium"
-                onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+                onClick={() => handleDemoLogin(account.email)}
+                disabled={demoLoadingEmail !== null}
+                className="flex w-full items-center gap-3 rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-left transition-all hover:-translate-y-px hover:bg-white/15 disabled:opacity-50"
               >
-                {mode === 'login' ? 'Sign up' : 'Log in'}
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/20">
+                  <account.icon size={16} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">{account.label}</span>
+                  <span className="block truncate text-xs text-white/65">{account.email}</span>
+                </span>
+                <span className="shrink-0 text-xs text-white/60">
+                  {demoLoadingEmail === account.email ? 'Logging in…' : account.description}
+                </span>
               </button>
-            </p>
-          </div>
-
-          <div className="card mt-6">
-            <p className="text-sm font-medium text-anchor-800 mb-1">Try it without signing up</p>
-            <p className="text-xs text-anchor-500 mb-4">
-              No email system is wired up yet, so use one of these demo accounts instead. Password
-              for all of them: <span className="font-mono text-anchor-700">{DEMO_PASSWORD}</span>
-            </p>
-            <div className="space-y-2">
-              {DEMO_ACCOUNTS.map((account) => (
-                <button
-                  key={account.email}
-                  type="button"
-                  onClick={() => handleDemoLogin(account.email)}
-                  disabled={demoLoadingEmail !== null}
-                  className="w-full flex items-center gap-3 rounded-xl border border-anchor-200 px-4 py-3 text-left hover:border-primary-300 hover:bg-anchor-50 hover:-translate-y-px hover:shadow-md transition-all disabled:opacity-50"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-brand-gradient-soft flex items-center justify-center shrink-0">
-                    <account.icon size={16} className="text-primary-500" />
-                  </div>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-medium text-anchor-800">{account.label}</span>
-                    <span className="block text-xs text-anchor-500 truncate">{account.email}</span>
-                  </span>
-                  <span className="text-xs text-anchor-400 shrink-0">
-                    {demoLoadingEmail === account.email ? 'Logging in…' : account.description}
-                  </span>
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </div>
