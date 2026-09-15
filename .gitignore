@@ -87,8 +87,8 @@ apps/mobile/dist/
 apps/mobile/web-build/
 
 # Testing
-*.test.ts
-*.spec.ts
+# NOTE: *.test.ts / *.spec.ts are deliberately NOT ignored - the suites are
+# part of the codebase and CI runs them.
 jest-*.json
 
 # Security
