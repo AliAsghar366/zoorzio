@@ -971,7 +971,10 @@ export class ChatService {
     const [memories, dueToday, user] = await Promise.all([
       query ? this.searchService.search(userId, query, 5) : Promise.resolve([]),
       this.tasksService.getTasksDueToday(userId),
-      this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
+      // A failed lookup falls back to UTC rather than failing the whole reply.
+      this.prisma.user
+        .findUnique({ where: { id: userId }, select: { timezone: true } })
+        .catch(() => null),
     ]);
 
     const parts: string[] = [];

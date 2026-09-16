@@ -466,11 +466,39 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   /** Mirrors WhatsAppService's LINK <code> flow exactly - same regex, same ChannelLinkingService call. */
   private async handleLinkCode(from: string, code: string): Promise<void> {
     const userId = await this.channelLinking.consumeWhatsAppLinkCode(code, from);
+    if (!userId) {
+      await this.trySend(
+        from,
+        'That code is invalid or expired. Codes last 10 minutes - generate a fresh one ' +
+          'from your Zoorzio Profile page and send it straight away.',
+      );
+      return;
+    }
+
+    // First contact on a new channel. A bare "you're linked" leaves someone
+    // staring at an empty chat wondering what to type, so say who this is and
+    // give them something they can copy.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+    const firstName = (user?.name || '').trim().split(/\s+/)[0];
+
     await this.trySend(
       from,
-      userId
-        ? "You're linked! I'll remember what you send me here from now on."
-        : 'That code is invalid or expired. Generate a new one from your Zoorzio Profile page.',
+      [
+        firstName ? `You're connected, ${firstName}! 👋` : "You're connected! 👋",
+        '',
+        "I'm Zoorzio. Message me here like you would a person and I'll keep track of things for you:",
+        '',
+        '• "remind me to call the accountant tomorrow at 3pm"',
+        '• "add milk and bread to my shopping list"',
+        '• "what tasks do I have today?"',
+        '• "remember the office wifi is guest-2026"',
+        '',
+        'Anything you can do in the Zoorzio app, you can ask me for here. ' +
+          'Just say what you need - no commands to learn.',
+      ].join(String.fromCharCode(10)),
     );
   }
 

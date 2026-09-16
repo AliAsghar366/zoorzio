@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { createHmac } from 'crypto';
 import { of } from 'rxjs';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 import { WhatsAppService } from './whatsapp.service';
 import { ChannelLinkingService } from './channel-linking.service';
 import { ChannelCredentialsService } from './channel-credentials.service';
@@ -96,6 +97,9 @@ describe('WhatsAppService', () => {
         { provide: ChatService, useValue: chatService },
         { provide: InteractiveReplyService, useValue: interactiveReplies },
         { provide: WhatsAppBusinessConnectionService, useValue: businessConnection },
+        // Paid-access gate on inbound messages. Default to allowed so the existing
+        // cases keep testing message handling rather than the plan check.
+        { provide: PlanLimitsService, useValue: { hasPaidAccess: jest.fn().mockResolvedValue(true) } },
       ],
     }).compile();
 

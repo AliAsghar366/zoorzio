@@ -110,7 +110,11 @@ describe('ChatService', () => {
     slackTeamApi = { listChannels: jest.fn(), postMessage: jest.fn() };
     channelLinking = { getLinkedChannels: jest.fn() };
     usersService = { findById: jest.fn(), updatePreferences: jest.fn() };
-    prisma = { channel: { findFirst: jest.fn().mockResolvedValue(null) } };
+    prisma = {
+      channel: { findFirst: jest.fn().mockResolvedValue(null) },
+      // buildContext reads the user's timezone so relative times resolve correctly
+      user: { findUnique: jest.fn().mockResolvedValue({ timezone: 'UTC' }) },
+    };
     contactsService = { search: jest.fn().mockResolvedValue([]), create: jest.fn() };
 
     // Default posture: nothing needs confirming and nothing has run before, so

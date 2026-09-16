@@ -29,6 +29,8 @@ describe('ChannelLinkingService', () => {
         delete: jest.fn(),
         upsert: jest.fn(),
       },
+      // The QR-linked session: no number until pairing completes.
+      whatsAppUnofficialSession: { findUnique: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn((ops) => Promise.all(ops)),
     };
 
@@ -70,6 +72,32 @@ describe('ChannelLinkingService', () => {
       // The raw code is never persisted - only its hash.
       const persisted = prisma.channelVerification.create.mock.calls[0][0].data;
       expect(persisted.codeHash).not.toBe(result.code);
+    });
+
+    it('builds the deep link from the QR-linked number when no env var is set', async () => {
+      // Scanning the QR is the whole setup; the paired number is already known,
+      // so it must not also need restating in WHATSAPP_BUSINESS_PHONE_NUMBER.
+      prisma.whatsAppUnofficialSession.findUnique.mockResolvedValue({
+        status: 'CONNECTED',
+        connectedNumber: '447848472822',
+      });
+      const result = await service.createWhatsAppLinkCode('user123');
+
+      expect(result.configured).toBe(true);
+      expect(result.waLink).toBe(
+        `https://wa.me/447848472822?text=${encodeURIComponent(`LINK ${result.code}`)}`,
+      );
+    });
+
+    it('does not advertise a session that is not actually connected', async () => {
+      prisma.whatsAppUnofficialSession.findUnique.mockResolvedValue({
+        status: 'CONNECTING',
+        connectedNumber: '447848472822',
+      });
+      const result = await service.createWhatsAppLinkCode('user123');
+
+      expect(result.configured).toBe(false);
+      expect(result.waLink).toBeNull();
     });
 
     it('builds a wa.me deep link when a business number is configured', async () => {
