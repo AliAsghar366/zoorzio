@@ -27,12 +27,16 @@ GROK_API_KEY = os.getenv("XAI_API_KEY") or os.getenv("GROK_API_KEY")
 GROK_BASE_URL = os.getenv("XAI_BASE_URL") or os.getenv("GROK_BASE_URL", "https://api.x.ai/v1")
 GROK_CHAT_MODEL = os.getenv("XAI_CHAT_MODEL") or os.getenv("GROK_CHAT_MODEL", "grok-4")
 
-# Groq (distinct from Grok/xAI above) is also OpenAI-API-compatible for chat
-# completions - same drop-in pattern. Kept as a fallback below Grok and OpenAI;
-# embeddings/transcription still always use the OpenAI client.
+# Groq (distinct from Grok/xAI above) is also OpenAI-API-compatible - same
+# drop-in pattern - and is the PREFERRED provider for everything it can serve:
+# chat, JSON-mode completions, vision and transcription. The only capability it
+# has no endpoint for is embeddings, which therefore still needs OpenAI.
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
 GROQ_CHAT_MODEL = os.getenv("GROQ_CHAT_MODEL", "openai/gpt-oss-120b")
+# gpt-oss is text-only, so image work needs a separate multimodal model.
+GROQ_VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.8-27b")
+GROQ_TRANSCRIPTION_MODEL = os.getenv("GROQ_TRANSCRIPTION_MODEL", "whisper-large-v3")
 
 client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 grok_client = AsyncOpenAI(api_key=GROK_API_KEY, base_url=GROK_BASE_URL) if GROK_API_KEY else None
@@ -54,29 +58,59 @@ app.add_middleware(
 
 
 def require_client() -> AsyncOpenAI:
+    """OpenAI specifically. Only embeddings still needs this: Groq exposes no
+    embeddings endpoint, so there is nothing to fall back to for that one."""
     if client is None:
         raise HTTPException(
             status_code=503,
-            detail="OPENAI_API_KEY is not configured on the AI service",
+            detail=(
+                "OPENAI_API_KEY is not configured. Embeddings are the one capability "
+                "Groq does not provide, so this endpoint needs an OpenAI key."
+            ),
         )
     return client
 
 
 def resolve_chat_client_and_model() -> tuple[AsyncOpenAI, str]:
-    """Grok/xAI takes priority when configured, then OpenAI, then Groq as the
-    final fallback. Resolved fresh on every call (not cached at import time)
-    so it reflects the current state of `client`/`grok_client`/`groq_client`
-    - important both for tests that monkeypatch these and for correctness if
-    they are ever reconfigured without a process restart."""
+    """Groq first, then Grok/xAI, then OpenAI. Resolved fresh on every call
+    (not cached at import time) so it reflects the current state of
+    `groq_client`/`grok_client`/`client` - important both for tests that
+    monkeypatch these and for correctness if they are ever reconfigured
+    without a process restart."""
+    if groq_client is not None:
+        return groq_client, GROQ_CHAT_MODEL
     if grok_client is not None:
         return grok_client, GROK_CHAT_MODEL
     if client is not None:
         return client, CHAT_MODEL
-    if groq_client is not None:
-        return groq_client, GROQ_CHAT_MODEL
     raise HTTPException(
         status_code=503,
-        detail="Neither XAI_API_KEY, OPENAI_API_KEY, nor GROQ_API_KEY is configured on the AI service",
+        detail="None of GROQ_API_KEY, XAI_API_KEY or OPENAI_API_KEY is configured on the AI service",
+    )
+
+
+def resolve_vision_client_and_model() -> tuple[AsyncOpenAI, str]:
+    """Image understanding. Groq's chat model is text-only, so this picks its
+    multimodal model instead; OpenAI is the fallback."""
+    if groq_client is not None:
+        return groq_client, GROQ_VISION_MODEL
+    if client is not None:
+        return client, CHAT_MODEL
+    raise HTTPException(
+        status_code=503,
+        detail="Neither GROQ_API_KEY nor OPENAI_API_KEY is configured for image understanding",
+    )
+
+
+def resolve_transcription_client_and_model() -> tuple[AsyncOpenAI, str]:
+    """Speech-to-text. Groq serves Whisper, so it is preferred here too."""
+    if groq_client is not None:
+        return groq_client, GROQ_TRANSCRIPTION_MODEL
+    if client is not None:
+        return client, TRANSCRIPTION_MODEL
+    raise HTTPException(
+        status_code=503,
+        detail="Neither GROQ_API_KEY nor OPENAI_API_KEY is configured for transcription",
     )
 
 
@@ -181,10 +215,10 @@ class ChatResponse(BaseModel):
 
 async def chat_json(system_prompt: str, user_content: str) -> Dict[str, Any]:
     """Call the chat completion API and parse a JSON object response."""
-    ai = require_client()
+    ai, model_name = resolve_chat_client_and_model()
     try:
         response = await ai.chat.completions.create(
-            model=CHAT_MODEL,
+            model=model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content},
@@ -262,7 +296,7 @@ async def extract_task(request: TaskExtractionRequest):
 async def transcribe(request: TranscriptionRequest):
     import base64
 
-    ai = require_client()
+    ai, transcription_model = resolve_transcription_client_and_model()
     if not request.audio_url and not request.audio_base64:
         raise HTTPException(status_code=400, detail="Provide either audio_url or audio_base64")
 
@@ -271,23 +305,33 @@ async def transcribe(request: TranscriptionRequest):
             audio_bytes = base64.b64decode(request.audio_base64)
             filename = request.filename
         else:
-            async with httpx.AsyncClient(timeout=60.0) as http:
-                audio_response = await http.get(request.audio_url)
+            async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http:
+                audio_response = await http.get(
+                    request.audio_url, headers={"User-Agent": "Mozilla/5.0"}
+                )
                 audio_response.raise_for_status()
             audio_bytes = audio_response.content
             filename = request.audio_url.split("/")[-1] or request.filename
 
         transcript = await ai.audio.transcriptions.create(
-            model=TRANSCRIPTION_MODEL,
+            model=transcription_model,
             file=(filename, audio_bytes),
             language=request.language if request.language != "auto" else None,
             response_format="verbose_json",
         )
 
+        # OpenAI's SDK returns segment objects; Groq returns plain dicts for the
+        # same verbose_json payload, so read both shapes.
+        def _seg(segment, field):
+            if isinstance(segment, dict):
+                return segment.get(field)
+            return getattr(segment, field, None)
+
+        raw_segments = getattr(transcript, "segments", None) or []
         segments = [
-            {"start": s.start, "end": s.end, "text": s.text}
-            for s in (transcript.segments or [])
-        ] if hasattr(transcript, "segments") and transcript.segments else []
+            {"start": _seg(s, "start"), "end": _seg(s, "end"), "text": _seg(s, "text")}
+            for s in raw_segments
+        ]
 
         return TranscriptionResponse(
             text=transcript.text,
@@ -303,10 +347,27 @@ async def transcribe(request: TranscriptionRequest):
 
 @app.post("/describe-image", response_model=ImageDescriptionResponse)
 async def describe_image(request: ImageDescriptionRequest):
-    ai = require_client()
+    import base64
+
+    ai, vision_model = resolve_vision_client_and_model()
+
+    # Groq fetches remote images server-side and gets blocked by some hosts
+    # (a 403 there surfaces as an opaque "failed to retrieve media"), so send
+    # the bytes inline instead of the URL. Data URIs are passed through as-is.
+    image_ref = request.image_url
+    if not image_ref.startswith("data:"):
+        try:
+            async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as http:
+                img = await http.get(image_ref, headers={"User-Agent": "Mozilla/5.0"})
+                img.raise_for_status()
+            media_type = img.headers.get("content-type", "image/jpeg").split(";")[0]
+            image_ref = f"data:{media_type};base64," + base64.b64encode(img.content).decode()
+        except httpx.HTTPError as error:
+            raise HTTPException(status_code=502, detail=f"Failed to download image: {error}")
+
     try:
         response = await ai.chat.completions.create(
-            model=CHAT_MODEL,
+            model=vision_model,
             messages=[
                 {
                     "role": "system",
@@ -324,7 +385,7 @@ async def describe_image(request: ImageDescriptionRequest):
                             "type": "text",
                             "text": request.caption or "Describe this image and transcribe any text in it.",
                         },
-                        {"type": "image_url", "image_url": {"url": request.image_url}},
+                        {"type": "image_url", "image_url": {"url": image_ref}},
                     ],
                 },
             ],
