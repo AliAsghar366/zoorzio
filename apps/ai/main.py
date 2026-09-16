@@ -115,8 +115,20 @@ def resolve_transcription_client_and_model() -> tuple[AsyncOpenAI, str]:
 
 
 def as_http_exception(error: Exception) -> HTTPException:
+    """Map a provider SDK error onto a status code that means something here.
+
+    The SDK is the OpenAI client regardless of which provider it points at, so
+    the message says "AI provider" rather than naming OpenAI - a Groq 429 was
+    previously reported as a 502 "OpenAI API error", which sends anyone
+    debugging it in entirely the wrong direction. Rate limits and auth
+    failures are passed through so callers can tell "slow down" apart from
+    "this is broken".
+    """
     if isinstance(error, OpenAIError):
-        return HTTPException(status_code=502, detail=f"OpenAI API error: {error}")
+        status = getattr(error, "status_code", None)
+        if status in (401, 403, 404, 408, 429):
+            return HTTPException(status_code=status, detail=f"AI provider error: {error}")
+        return HTTPException(status_code=502, detail=f"AI provider error: {error}")
     return HTTPException(status_code=500, detail=str(error))
 
 
@@ -391,6 +403,11 @@ async def describe_image(request: ImageDescriptionRequest):
             ],
             response_format={"type": "json_object"},
             temperature=0.2,
+            # A description plus OCR needs a few hundred tokens, not an open
+            # budget. Left unbounded, the request reserves the model's full
+            # output window and Groq rejects it against the per-minute output
+            # limit ("Request too large ... OTPM") before it ever runs.
+            max_tokens=700,
         )
         data = json.loads(response.choices[0].message.content or "{}")
         return ImageDescriptionResponse(

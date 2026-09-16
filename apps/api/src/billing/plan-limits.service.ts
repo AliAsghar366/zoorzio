@@ -29,12 +29,24 @@ const FREE_TIER_LIMITS: PlanLimits = { lists: 3, reminders: 5, memories: 10, tas
 export class PlanLimitsService {
   constructor(private prisma: PrismaService) {}
 
-  private async getLimitsForUser(userId: string): Promise<PlanLimits> {
+  /**
+   * True when the user has a live paid subscription. Trials count - a trialing
+   * user is evaluating the paid product and should get the paid experience.
+   *
+   * This is what gates the messaging channels: WhatsApp and Telegram capture is
+   * advertised from the Starter plan up (see the plan features in the seed), so
+   * a user with no subscription should not be able to drive the agent from
+   * WhatsApp even though their account exists.
+   */
+  async hasPaidAccess(userId: string): Promise<boolean> {
     const subscription = await this.prisma.subscription.findUnique({ where: { userId } });
-    const hasPaidAccess =
-      !!subscription && (subscription.status === 'ACTIVE' || subscription.status === 'TRIALING');
+    return (
+      !!subscription && (subscription.status === 'ACTIVE' || subscription.status === 'TRIALING')
+    );
+  }
 
-    return hasPaidAccess ? UNLIMITED : FREE_TIER_LIMITS;
+  private async getLimitsForUser(userId: string): Promise<PlanLimits> {
+    return (await this.hasPaidAccess(userId)) ? UNLIMITED : FREE_TIER_LIMITS;
   }
 
   private countExisting(userId: string, resource: LimitedResource): Promise<number> {

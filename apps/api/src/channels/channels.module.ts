@@ -16,6 +16,7 @@ import { SlackService } from './slack.service';
 import { ChannelLinkingService } from './channel-linking.service';
 import { ChannelCredentialsService } from './channel-credentials.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { BillingModule } from '../billing/billing.module';
 import { MemoryModule } from '../memory/memory.module';
 import { AIModule } from '../ai/ai.module';
 import { SecurityModule } from '../security/security.module';
@@ -25,6 +26,7 @@ import { RemindersModule } from '../reminders/reminders.module';
 @Module({
   imports: [
     PrismaModule,
+    BillingModule,
     MemoryModule,
     AIModule,
     SecurityModule,

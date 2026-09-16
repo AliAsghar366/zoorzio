@@ -10,6 +10,7 @@ import { AIService } from '../ai/ai.service';
 import { ChannelLinkingService } from './channel-linking.service';
 import { ChannelCredentialsService } from './channel-credentials.service';
 import { ChatService } from '../chat/chat.service';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 import { InteractiveReplyService } from './interactive-reply.service';
 import { WhatsAppBusinessConnectionService } from './whatsapp-business-connection.service';
 import { graphApiVersion } from './whatsapp-graph';
@@ -63,6 +64,7 @@ export class WhatsAppService {
     // nature: the agent's tools include sending on this very channel.
     @Inject(forwardRef(() => ChatService))
     private readonly chatService: ChatService,
+    private readonly planLimits: PlanLimitsService,
     @Inject(forwardRef(() => InteractiveReplyService))
     private readonly interactiveReplies: InteractiveReplyService,
   ) {}
@@ -244,6 +246,17 @@ export class WhatsAppService {
         await this.trySendMessage(
           from,
           "I don't recognize this number yet. Open Zoorzio, go to your Profile, and link your WhatsApp number first.",
+          creds,
+        );
+        return null;
+      }
+
+      // WhatsApp is a paid channel (Starter and up) - same gate as the
+      // QR-linked connection, so both routes behave identically.
+      if (!(await this.planLimits.hasPaidAccess(channel.userId))) {
+        await this.trySendMessage(
+          from,
+          'WhatsApp access is part of a Zoorzio plan. Open Zoorzio and start a plan to talk to me here.',
           creds,
         );
         return null;

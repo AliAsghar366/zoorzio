@@ -8,6 +8,7 @@ import { EncryptionService } from '../security/encryption.service';
 import { MemoryService } from '../memory/memory.service';
 import { ChannelLinkingService } from './channel-linking.service';
 import { ChatService } from '../chat/chat.service';
+import { PlanLimitsService } from '../billing/plan-limits.service';
 import { InteractiveReplyService } from './interactive-reply.service';
 import { buildAgentHistory } from './agent-history';
 import { useDatabaseAuthState } from './whatsapp-unofficial-auth-store';
@@ -55,6 +56,7 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     private readonly channelLinking: ChannelLinkingService,
     @Inject(forwardRef(() => ChatService))
     private readonly chatService: ChatService,
+    private readonly planLimits: PlanLimitsService,
     @Inject(forwardRef(() => InteractiveReplyService))
     private readonly interactiveReplies: InteractiveReplyService,
   ) {}
@@ -356,6 +358,17 @@ export class WhatsAppUnofficialService implements OnModuleInit {
       await this.trySend(
         from,
         "I don't recognize this number yet. Open Zoorzio, go to your Profile, and link your WhatsApp number first.",
+      );
+      return;
+    }
+
+    // WhatsApp is a paid channel (Starter and up). An account that exists but
+    // has no live subscription is told how to get access rather than silently
+    // ignored - and nothing is stored against it.
+    if (!(await this.planLimits.hasPaidAccess(channel.userId))) {
+      await this.trySend(
+        from,
+        'WhatsApp access is part of a Zoorzio plan. Open Zoorzio and start a plan to talk to me here.',
       );
       return;
     }
