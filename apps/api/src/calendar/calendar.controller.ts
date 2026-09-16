@@ -158,6 +158,13 @@ export class CalendarController {
     return this.calendarService.syncAppleCalendar(req.user.id);
   }
 
+  @Get('calendars')
+  @ApiOperation({ summary: 'List your calendars (the default one is created if you have none)' })
+  @ApiResponse({ status: 200, description: 'Calendars' })
+  async listCalendars(@Request() req: any) {
+    return this.calendarService.listCalendars(req.user.id);
+  }
+
   @Get('events')
   @ApiOperation({ summary: 'Get calendar events' })
   @ApiQuery({ name: 'startDate', required: false, description: 'Start date' })

@@ -689,6 +689,22 @@ export class CalendarService {
    * calendar if there is one, so the event is real and can carry a Meet link
    * and invitations, otherwise the local fallback.
    */
+  /**
+   * Every calendar the user owns. Creating an event requires a calendarId and
+   * nothing else exposed one: GET /calendar/events only carries a calendarId
+   * inside events, so an account with a calendar but no events yet had no way
+   * to discover it and could never create its first event.
+   *
+   * Ensures the default exists first, so this never comes back empty.
+   */
+  async listCalendars(userId: string) {
+    await this.getOrCreateDefaultCalendar(userId);
+    return this.prisma.calendar.findMany({
+      where: { userId },
+      orderBy: [{ provider: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
   async getPreferredCalendar(userId: string) {
     const google = await this.prisma.calendar.findFirst({
       where: { userId, provider: 'GOOGLE', isActive: true },
