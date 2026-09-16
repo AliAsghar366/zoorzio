@@ -95,6 +95,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     renderTasks();
+    document.addEventListener('zoorzio:data-changed', function () {
+      renderTasks().catch(function () {});
+    });
 
     function renderTasks() {
       return API.request('/tasks').then(function (tasks) {
@@ -205,6 +208,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     renderReminders();
+    document.addEventListener('zoorzio:data-changed', function () {
+      renderReminders().catch(function () {});
+    });
 
     function renderReminders() {
       return API.request('/reminders').then(function (items) {
@@ -292,6 +298,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     renderLists();
+    document.addEventListener('zoorzio:data-changed', function () {
+      renderLists().catch(function () {});
+    });
 
     function renderLists() {
       return API.request('/lists').then(function (lists) {

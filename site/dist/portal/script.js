@@ -86,15 +86,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var ask = document.getElementById('heroAsk');
   if (ask) {
-    ask.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter') return;
+    var go = function () {
       var text = ask.value.trim();
-      if (!text) return;
-      e.preventDefault();
+      if (!text) { ask.focus(); return; }
       // Coffee is the conversation surface - send it there and let that page
       // own the exchange, rather than half-rendering a reply on the home hero.
       try { sessionStorage.setItem('zoorzio_pending_message', text); } catch (err) {}
       window.location.href = 'coffee.html';
+    };
+    ask.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      go();
     });
+    var sendBtn = document.getElementById('heroSend');
+    if (sendBtn) sendBtn.addEventListener('click', go);
   }
 });
