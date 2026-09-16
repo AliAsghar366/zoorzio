@@ -18,9 +18,23 @@ const PANEL_URL = '/portal/';
 
 const apiUrl = process.env.ZOORZIO_API_URL;
 if (!apiUrl) {
-  console.warn(
-    'WARNING: ZOORZIO_API_URL is not set - login will keep showing "not connected yet" until it is configured on the deployment.',
+  // This used to be a warning, which meant a deploy with the variable missing
+  // succeeded and quietly shipped a site that can never reach its backend -
+  // the failure only showed up as "Sign-in isn't connected yet" in the browser.
+  // Failing the build puts the problem where someone will actually see it.
+  console.error(
+    [
+      'ZOORZIO_API_URL is not set, so the pages would ship with the placeholder',
+      'still in them and sign-in could never reach the backend.',
+      '',
+      'Set it on the Vercel project (Settings -> Environment Variables), scoped to',
+      'the environment you are deploying, then REDEPLOY - changing a variable does',
+      'not rebuild anything on its own.',
+      '',
+      '  ZOORZIO_API_URL = https://<your-api-host>/api    (the /api suffix matters)',
+    ].join('\n'),
   );
+  process.exit(1);
 }
 
 function walk(dir, out = []) {
@@ -43,4 +57,12 @@ for (const f of walk(DIST)) {
     touched++;
   }
 }
+console.log(`inject-env: API URL -> ${apiUrl}`);
 console.log(`inject-env: updated ${touched} file(s)`);
+if (touched === 0) {
+  console.error(
+    'inject-env: no file contained the placeholder. The built output is not the ' +
+      'one this script is pointed at, so nothing was wired up.',
+  );
+  process.exit(1);
+}
