@@ -38,6 +38,20 @@ export class WhatsAppUnofficialController {
     return this.service.getStatus();
   }
 
+  @Post('reconnect')
+  @ApiOperation({
+    summary:
+      '[Admin] Drop the current socket and reconnect using the stored session - for when status says CONNECTED but nothing is arriving',
+  })
+  @ApiResponse({ status: 201, description: 'Reconnect attempted' })
+  async reconnect() {
+    // connect() returns immediately while a socket handle exists, so a stale
+    // one left the only remedy as unlink-and-rescan. This forces a fresh
+    // socket from the credentials already stored - no QR needed.
+    await this.service.connect(true);
+    return this.service.getStatus();
+  }
+
   @Post('logout')
   @ApiOperation({ summary: '[Admin] Unlink the device and clear all stored session data' })
   @ApiResponse({ status: 201, description: 'Logged out' })

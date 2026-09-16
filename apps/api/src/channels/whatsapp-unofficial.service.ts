@@ -24,6 +24,12 @@ export interface WhatsAppUnofficialStatusView {
   lastError: string | null;
   qrDataUrl: string | null;
   qrGeneratedAt: Date | null;
+  /** Whether a live socket object exists right now (not just what the row says). */
+  socketOpen: boolean;
+  /** Stored status and a live socket agreeing - the only honest 'it works'. */
+  receiving: boolean;
+  /** Last time any message arrived, so a quiet bot can be told from a dead one. */
+  lastInboundAt: Date | null;
 }
 
 /**
@@ -46,6 +52,8 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   private readonly logger = new Logger(WhatsAppUnofficialService.name);
   private sock: WASocket | null = null;
   private connecting = false;
+  /** When a message was last received, for telling a quiet bot from a dead one. */
+  private lastInboundAt: Date | null = null;
   private loggingOut = false;
   private latestQr: { dataUrl: string; generatedAt: Date } | null = null;
 
@@ -79,10 +87,20 @@ export class WhatsAppUnofficialService implements OnModuleInit {
       update: {},
     });
 
+    // status is the stored row, which is what pairing last wrote. It says
+    // nothing about whether a socket is alive now: after a restart that failed
+    // to resume, or a link revoked from the phone, the row still reads
+    // CONNECTED while nothing is receiving. Messages then vanish with no error
+    // anywhere, which is exactly as confusing as it sounds. socketOpen reports
+    // the live object so the two can be told apart.
+    const socketOpen = !!this.sock;
     return {
       status: session.status,
       connectedNumber: session.connectedNumber,
       lastError: session.lastError,
+      socketOpen,
+      receiving: socketOpen && session.status === WhatsAppUnofficialStatus.CONNECTED,
+      lastInboundAt: this.lastInboundAt,
       qrDataUrl: this.latestQr?.dataUrl ?? null,
       qrGeneratedAt: this.latestQr?.generatedAt ?? null,
     };
@@ -97,7 +115,19 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   }
 
   /** Starts pairing (generating a QR code) or resumes an existing session. Safe to call repeatedly. */
-  async connect(): Promise<void> {
+  async connect(force = false): Promise<void> {
+    // A stale socket makes connect() a no-op forever: this.sock is set, so it
+    // returns immediately, and the only way back was to unlink and re-scan the
+    // QR. force drops the handle and starts again, reusing the stored
+    // credentials - no re-scan needed.
+    if (force && this.sock) {
+      try {
+        this.sock.end(undefined);
+      } catch {
+        /* already gone */
+      }
+      this.sock = null;
+    }
     if (this.connecting || this.sock) return;
     this.connecting = true;
 
@@ -323,6 +353,7 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   // ---- Inbound ----
 
   private async handleIncomingMessages(event: { messages: any[]; type: string }): Promise<void> {
+    this.lastInboundAt = new Date();
     for (const message of event.messages) {
       try {
         await this.handleIncomingMessage(message);
