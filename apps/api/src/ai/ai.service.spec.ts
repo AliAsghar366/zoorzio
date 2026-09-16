@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AIService } from './ai.service';
+import { AIService, chatFailureMessage } from './ai.service';
 import { AiClientService } from './ai-client.service';
 
 describe('AIService', () => {
@@ -153,3 +153,36 @@ describe('AIService', () => {
     });
   });
 });
+
+describe('chatFailureMessage', () => {
+  const axiosError = (status: number, detail: string) => ({ response: { status, data: { detail } } });
+
+  it('explains a provider rate limit instead of saying "try again in a moment"', () => {
+    const msg = chatFailureMessage(
+      axiosError(
+        502,
+        "AI provider error: Error code: 429 - {'error': {'message': 'Rate limit reached for model " +
+          "on tokens per day (TPD): Limit 200000, Used 197884, Requested 4568. Please try again in 17m39.26s.'}}",
+      ),
+    );
+    expect(msg).toMatch(/usage limit/);
+    expect(msg).toMatch(/about 18 minutes/);
+    expect(msg).not.toMatch(/in a moment/);
+  });
+
+  it('handles a wait given in hours and minutes', () => {
+    const msg = chatFailureMessage(axiosError(502, 'tokens per day ... Please try again in 1h5m'));
+    expect(msg).toMatch(/about 65 minutes/);
+  });
+
+  it('still reports a rate limit when no wait time is given', () => {
+    const msg = chatFailureMessage(axiosError(429, 'Rate limit reached'));
+    expect(msg).toMatch(/usage limit/);
+    expect(msg).not.toMatch(/back in about/);
+  });
+
+  it('keeps the generic message for other failures', () => {
+    expect(chatFailureMessage(new Error('socket hang up'))).toMatch(/try again in a moment/);
+  });
+});
+

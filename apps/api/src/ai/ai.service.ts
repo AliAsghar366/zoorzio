@@ -141,9 +141,42 @@ export class AIService {
       return { reply, toolCalls: tool_calls };
     } catch (error) {
       this.logger.error('Failed to generate chat reply', error);
-      return {
-        reply: "Sorry, I'm having trouble responding right now. Please try again in a moment.",
-      };
+      return { reply: chatFailureMessage(error) };
     }
   }
+}
+
+/**
+ * What to tell the user when the model call fails.
+ *
+ * Every failure used to say "try again in a moment". When the cause is the
+ * provider's rate limit - Groq's free tier stops at 200k tokens a day - a
+ * moment later fails identically, for up to an hour, and the assistant reads
+ * as broken rather than paused. Say which it is, and roughly when it returns
+ * when the provider tells us.
+ */
+export function chatFailureMessage(error: unknown): string {
+  const data = (error as any)?.response?.data;
+  const detail = typeof data === 'string' ? data : JSON.stringify(data ?? '');
+  const status = (error as any)?.response?.status;
+
+  const rateLimited = /rate limit|tokens per day|TPD|429/i.test(detail);
+  if (rateLimited) {
+    const wait = /try again in\s+(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?/i.exec(detail);
+    let minutes = 0;
+    if (wait) {
+      minutes = (Number(wait[1] || 0) * 60) + Number(wait[2] || 0) + (Number(wait[3] || 0) > 0 ? 1 : 0);
+    }
+    const when = minutes > 0 ? ` It should be back in about ${minutes} minute${minutes === 1 ? '' : 's'}.` : '';
+    return (
+      "I've reached today's usage limit for my AI model, so I can't answer right now." + when +
+      ' Nothing you sent was lost - your tasks, reminders and lists are all still there.'
+    );
+  }
+
+  if (status === 503) {
+    return "My AI model isn't configured on the server yet, so I can't answer. Please let the Zoorzio team know.";
+  }
+
+  return "Sorry, I'm having trouble responding right now. Please try again in a moment.";
 }
