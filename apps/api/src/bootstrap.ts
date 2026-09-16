@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as express from 'express';
 
 /**
  * Shared app configuration (security middleware, CORS, validation, Swagger)
@@ -13,6 +14,15 @@ export function configureApp(app: INestApplication): void {
   const configService = app.get(ConfigService);
 
   app.use(helmet());
+
+  // Express defaults to a 100kb JSON body, which silently broke every feature
+  // that sends base64 payloads: POST /memory/voice carries a recorded voice
+  // note, and a few seconds of audio is already well past that. The request
+  // was rejected before it reached the auth guard, so it surfaced as an
+  // opaque 500 from an "anonymous" caller rather than anything diagnosable.
+  const BODY_LIMIT = configService.get<string>('MAX_REQUEST_BODY', '25mb');
+  app.use(express.json({ limit: BODY_LIMIT }));
+  app.use(express.urlencoded({ limit: BODY_LIMIT, extended: true }));
 
   // CORS_ORIGIN accepts a comma-separated list, so the API can serve the app
   // and the marketing site at once - and keep working when Next.js falls back
