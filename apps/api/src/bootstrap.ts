@@ -49,12 +49,24 @@ export function configureApp(app: INestApplication): void {
 
   app.setGlobalPrefix('api');
 
-  const config = new DocumentBuilder()
-    .setTitle('Zoorzio API')
-    .setDescription('The memory layer that actually remembers')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  // /api/docs and /api/docs-json answered anonymously in production, publishing
+  // every route, every DTO field and the whole admin surface to anyone who
+  // asked. The endpoints behind it are still guarded, so this was reconnaissance
+  // rather than access - but there is no reason to hand it out.
+  //
+  // ENABLE_API_DOCS=true turns it back on deliberately (a staging box, say).
+  const docsEnabled =
+    configService.get('NODE_ENV') !== 'production' ||
+    configService.get('ENABLE_API_DOCS') === 'true';
+
+  if (docsEnabled) {
+    const config = new DocumentBuilder()
+      .setTitle('Zoorzio API')
+      .setDescription('The memory layer that actually remembers')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 }
