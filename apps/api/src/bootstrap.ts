@@ -14,8 +14,17 @@ export function configureApp(app: INestApplication): void {
 
   app.use(helmet());
 
+  // CORS_ORIGIN accepts a comma-separated list, so the API can serve the app
+  // and the marketing site at once - and keep working when Next.js falls back
+  // to another port because 3000 is already taken.
+  const corsOrigins = configService
+    .get<string>('CORS_ORIGIN', 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: configService.get('CORS_ORIGIN', 'http://localhost:3000'),
+    origin: corsOrigins.length > 1 ? corsOrigins : corsOrigins[0],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
