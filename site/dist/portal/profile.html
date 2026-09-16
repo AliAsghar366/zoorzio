@@ -135,6 +135,35 @@
       </section>
 
       <!-- Danger Zone -->
+      <section class="pf-card" id="channelsCard">
+        <header class="pf-card__head pf-card__head--compact">
+          <span class="pf-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3.8a8.2 8.2 0 0 0-7 12.5L4 20.2l4-1a8.2 8.2 0 1 0 4-15.4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.2 8.6c.3 2.6 2.4 4.8 5 5.2l1-1.4 1.8.8c-.3 1.2-1.5 1.9-2.8 1.6-3-.6-5.4-3-6-6-.3-1.3.4-2.5 1.6-2.8l.8 1.8-1.4 1Z" fill="currentColor"/></svg>
+          </span>
+          <span class="pf-card__head-text">
+            <strong>Chat on WhatsApp</strong>
+            <em>Message Zoorzio from WhatsApp - reminders, tasks, notes, all of it.</em>
+          </span>
+        </header>
+
+        <div class="pf-plan" id="waStatusRow">
+          <span class="pf-plan__icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+          <span class="pf-plan__text">
+            <strong id="waStatusTitle">Not connected</strong>
+            <em id="waStatusDetail">Link your number to chat with Zoorzio on WhatsApp.</em>
+          </span>
+        </div>
+
+        <div class="pf-plan__actions">
+          <button class="pf-btn pf-btn--outline" id="waConnectBtn">Connect WhatsApp</button>
+          <a class="pf-btn pf-btn--outline" id="waOpenLink" href="#" target="_blank" rel="noopener" hidden>Open WhatsApp</a>
+        </div>
+
+        <p class="pf-billing" id="waHint" hidden></p>
+      </section>
+
       <section class="pf-card pf-card--row">
         <span class="pf-card__head-text">
           <strong>Danger Zone</strong>
@@ -171,5 +200,70 @@
   <script src="zoorzio-api.js"></script>
   <script src="portal-session.js"></script>
 <script src="profile.js"></script>
+    <script>
+    (function () {
+      // /channels/whatsapp/link returns { code, waLink, configured }. waLink is a
+      // wa.me deep link with "LINK <code>" pre-filled, so connecting is one tap;
+      // configured is false when no number is linked on the server yet, in which
+      // case there is nothing useful to hand the user.
+      var btn = document.getElementById('waConnectBtn');
+      if (!btn || !window.ZoorzioAPI) return;
+      var API = window.ZoorzioAPI;
+      var openLink = document.getElementById('waOpenLink');
+      var title = document.getElementById('waStatusTitle');
+      var detail = document.getElementById('waStatusDetail');
+      var hint = document.getElementById('waHint');
+
+      function say(text) {
+        hint.textContent = text || '';
+        hint.hidden = !text;
+      }
+
+      function showLinked(number) {
+        title.textContent = 'Connected';
+        detail.textContent = number
+          ? 'You can message Zoorzio from ' + number + '.'
+          : 'You can message Zoorzio on WhatsApp.';
+        btn.hidden = true;
+        openLink.hidden = true;
+      }
+
+      // Reflect an existing link rather than inviting the user to redo it.
+      API.request('/channels/linked')
+        .then(function (channels) {
+          var wa = (channels || []).filter(function (c) {
+            return String(c.type || '').toUpperCase() === 'WHATSAPP';
+          })[0];
+          if (wa) showLinked(wa.externalId || wa.identifier || '');
+        })
+        .catch(function () { /* leave the default "not connected" copy */ });
+
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        btn.textContent = 'Getting your link\u2026';
+        say('');
+        API.request('/channels/whatsapp/link', { method: 'POST', body: {} })
+          .then(function (d) {
+            if (d && d.waLink) {
+              openLink.href = d.waLink;
+              openLink.hidden = false;
+              title.textContent = 'Almost there';
+              detail.textContent = 'Tap "Open WhatsApp" and send the message we prepared.';
+              say('If the button does not open WhatsApp, send this instead: LINK ' + d.code);
+            } else {
+              say(
+                'WhatsApp is not connected on this deployment yet, so there is no ' +
+                  'number to message. Your code is LINK ' + ((d && d.code) || '') + '.'
+              );
+            }
+          })
+          .catch(function (err) { say(err.message); })
+          .finally(function () {
+            btn.disabled = false;
+            btn.textContent = 'Connect WhatsApp';
+          });
+      });
+    })();
+</script>
 </body>
 </html>
