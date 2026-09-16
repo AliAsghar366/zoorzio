@@ -1,0 +1,1 @@
+{"error":true,"message":"Access denied. No token provided or invalid format. Expected: 'Bearer <token>'"}

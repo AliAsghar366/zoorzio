@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Explore Zoorzio</title>
+<link rel="icon" href="assets/images/zoorzio-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="explore.css" />
+</head>
+<body>
+
+  <div class="ex">
+    <div class="ex__bg" id="exBg"></div>
+
+    <!-- Top bar -->
+    <header class="ex-topbar">
+      <a href="index.html" class="ex-icon-btn" aria-label="Back to Portal">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v8.2c0 .7.6 1.3 1.3 1.3H10v-5h4v5h2.7c.7 0 1.3-.6 1.3-1.3V10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+
+      <div class="ex-tabs" id="exTabs">
+        <button class="ex-tab is-active" data-tab="everything">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" stroke="currentColor" stroke-width="1.6"/></svg>
+          Everything
+        </button>
+        <button class="ex-tab" data-tab="bubbles">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="9" r="4" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="15" r="4" stroke="currentColor" stroke-width="1.5"/></svg>
+          My bubbles
+        </button>
+        <button class="ex-tab" data-tab="cleanup">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4c3.5 2 5 4.4 5 7a5 5 0 0 1-10 0c0-2.6 1.5-5 5-7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          Clean up
+        </button>
+      </div>
+
+      <div class="ex-actions">
+        <a href="workspace.html" class="ex-icon-btn" aria-label="Workspace">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="6.5" width="17" height="11.5" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 6.5V5a1.7 1.7 0 0 1 1.7-1.7h3.6A1.7 1.7 0 0 1 15.5 5v1.5" stroke="currentColor" stroke-width="1.6"/></svg>
+        </a>
+        <a href="coffee.html" class="ex-icon-btn ex-icon-btn--mascot" aria-label="Coffee with Zoorzio">
+          <img src="assets/images/zoorzio-icon.png" alt="" />
+        </a>
+        <button class="ex-icon-btn" aria-label="Mute">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 10v4h3.2L13 17.5v-11L8.2 10H5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M16.5 9.5l4 5M20.5 9.5l-4 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================== EVERYTHING VIEW ===================== -->
+    <section class="ex-view is-active" data-panel="everything">
+      <div class="ex-search">Search your Memory<span class="ex-search__dots">…</span></div>
+
+      <div class="ex-masonry">
+
+        <div class="ex-card ex-card--input">
+          <p>Type or record a new thought</p>
+          <div class="ex-card__input-row">
+            <button class="ex-round-btn" aria-label="Add">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+            <button class="ex-round-btn" aria-label="Voice">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+            <button class="ex-round-btn ex-round-btn--accent" aria-label="Send">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 19V5M6 11l6-6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ex-card ex-card--quote">
+          <img src="assets/images/zoorzio-icon.png" alt="" class="ex-card__mascot-badge" />
+          <blockquote>"Slow mornings, warm drinks, and a little bit of Zoorzio magic."</blockquote>
+        </div>
+
+        <div class="ex-card ex-card--mascot">
+          <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" />
+        </div>
+
+        <div class="ex-card ex-card--browser">
+          <div class="ex-browser__chrome">
+            <span></span><span></span><span></span>
+            <span class="ex-browser__url">zoorzio.ai</span>
+          </div>
+          <div class="ex-browser__body">
+            <img src="assets/images/zoorzio-icon.png" alt="" />
+            <p>Zoorzio Portal — never forget again</p>
+          </div>
+        </div>
+
+        <div class="ex-card ex-card--text">
+          <p>My Zoorzio highlights reel</p>
+        </div>
+
+        <div class="ex-card ex-card--video">
+          <img src="assets/images/zoorzio-icon.png" alt="" class="ex-card__mascot-badge ex-card__mascot-badge--glasses" />
+          <button class="ex-play-btn" aria-label="Play">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 6.5v11l9-5.5-9-5.5Z" fill="currentColor"/></svg>
+          </button>
+        </div>
+
+        <div class="ex-card ex-card--tile">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="3" width="12" height="18" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M10 18h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <p>New gadget idea</p>
+        </div>
+
+        <div class="ex-card ex-card--tile ex-card--tile-alt">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="9" r="2.6" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="9" r="2.6" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 19c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4M11.5 19c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <p>Team sync notes</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===================== MY BUBBLES VIEW ===================== -->
+    <section class="ex-view" data-panel="bubbles">
+      <div class="ex-bubbles-scene">
+        <div class="ex-bubble ex-bubble--tag" style="top:24%; left:52%;">
+          <span class="ex-bubble__tag">Zeesha</span>
+        </div>
+        <div class="ex-bubble ex-bubble--main">
+          <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" />
+        </div>
+        <button class="ex-bubble-add" id="addBubbleBtn" aria-label="Add a bubble">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="ex-bubble ex-bubble--mini">
+          <img src="assets/images/zoorzio-icon.png" alt="" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CLEAN UP VIEW ===================== -->
+    <section class="ex-view" data-panel="cleanup">
+      <div class="ex-cleanup">
+        <div class="ex-cleanup__head">
+          <h1>Clean up<br />your Memory…</h1>
+        </div>
+
+        <div class="ex-cleanup__layout">
+          <div class="ex-insights">
+            <span class="ex-insights__icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="7" width="17" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 7 12 3l8.5 4" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            </span>
+            <p class="ex-insights__label">Cleanup Insights</p>
+            <p class="ex-insights__stat"><strong id="memLeft">8</strong><span>memories left</span></p>
+            <p class="ex-insights__stat"><strong id="memReviewed">0</strong><span>reviewed</span></p>
+          </div>
+
+          <div class="ex-review-card" id="reviewCard">
+            <header>
+              <span class="ex-review-card__icon">✨</span>
+              <span class="ex-review-card__meta">
+                <strong>My Zoorzio highlights reel</strong>
+                <em>Text · <span id="reviewIndex">1</span> of 8</em>
+              </span>
+              <span class="ex-review-card__badge">Review</span>
+            </header>
+            <div class="ex-review-card__body" id="reviewBody">
+              My Zoorzio highlights reel
+            </div>
+          </div>
+
+          <div class="ex-next-up">
+            <p class="ex-next-up__label">Next up<br /><em>Quote</em></p>
+            <div class="ex-next-up__card">
+              "Slow mornings, warm drinks, and a little bit of Zoorzio magic."
+            </div>
+          </div>
+        </div>
+
+        <div class="ex-cleanup__actions">
+          <button class="ex-action-btn ex-action-btn--forget" id="forgetBtn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 7h14M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7m-8 0 .6 12a2 2 0 0 0 2 1.9h3.8a2 2 0 0 0 2-1.9L18 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Forget
+          </button>
+          <button class="ex-action-btn ex-action-btn--keep" id="keepBtn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 12.5 9 17l10.5-10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Keep
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <img src="assets/images/zoorzio-icon.png" alt="" class="ex-floating-mascot" />
+  </div>
+
+<script src="explore.js"></script>
+</body>
+</html>

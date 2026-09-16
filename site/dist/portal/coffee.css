@@ -1,0 +1,474 @@
+/* Coffee with Zoorzio — section styles (builds on styles.css tokens) */
+
+.coffee a.glass-btn,
+.coffee a.nav-item {
+  text-decoration: none;
+}
+
+.coffee {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* ---------- Background ---------- */
+
+.coffee__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(50% 45% at 20% 12%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 60%),
+    radial-gradient(55% 50% at 90% 22%, rgba(220, 140, 197, 0.3) 0%, rgba(220, 140, 197, 0) 60%),
+    radial-gradient(60% 55% at 12% 88%, rgba(172, 132, 204, 0.32) 0%, rgba(172, 132, 204, 0) 60%),
+    radial-gradient(55% 50% at 85% 95%, rgba(249, 151, 157, 0.32) 0%, rgba(249, 151, 157, 0) 60%),
+    linear-gradient(160deg, #7EA9E4 0%, #9283D9 20%, #AC84CC 40%, #DC8CC5 58%, #F9979D 74%, #FCAD96 88%, #F5CAA2 100%);
+}
+
+.coffee__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(130% 90% at 50% 0%, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 50%);
+}
+
+/* ---------- Top controls: dark on the lighter sky background ---------- */
+
+.coffee .topbar .glass-btn {
+  color: #5B4A78;
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.coffee .topbar .glass-btn:hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.coffee .topbar .glass-btn__icon {
+  filter: none;
+}
+
+/* ---------- Layout ---------- */
+
+.coffee__layout {
+  position: relative;
+  z-index: 3;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 24px;
+  padding: 100px 5vw 130px;
+  align-items: center;
+}
+
+/* ---------- Left side ---------- */
+
+.coffee__left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+  justify-content: center;
+  gap: 4px;
+  padding-right: 12px;
+}
+
+.coffee__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(91, 74, 120, 0.7);
+}
+
+.coffee__title {
+  margin: 6px 0 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: clamp(30px, 3.6vw, 46px);
+  color: #4A3A63;
+  text-shadow: 0 2px 14px rgba(255, 255, 255, 0.4);
+  line-height: 1.05;
+}
+
+.coffee__subtitle {
+  margin: 12px 0 0;
+  max-width: 380px;
+  font-size: clamp(14px, 1.4vw, 16px);
+  font-weight: 400;
+  color: rgba(74, 58, 99, 0.72);
+  line-height: 1.5;
+}
+
+.coffee__scene {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 260px;
+}
+
+.coffee__mascot-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.coffee__mascot {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  z-index: 3;
+  filter: drop-shadow(0 18px 26px rgba(90, 60, 130, 0.4));
+  animation: coffee-float 5.5s ease-in-out infinite;
+}
+
+@keyframes coffee-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(-2deg); }
+}
+
+.coffee__mini-mascot {
+  position: absolute;
+  top: -10px;
+  right: 14px;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  z-index: 4;
+  filter: drop-shadow(0 8px 14px rgba(90, 60, 130, 0.4));
+  animation: coffee-float-mini 4.2s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
+@keyframes coffee-float-mini {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.05); }
+}
+
+/* Coffee cup, built purely from CSS shapes */
+
+.coffee__cup {
+  position: relative;
+  width: 96px;
+  margin-left: -10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.coffee__cup-steam {
+  position: absolute;
+  top: -34px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.coffee__cup-steam span {
+  width: 5px;
+  height: 22px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(146, 131, 217, 0));
+  animation: steam-rise 3s ease-in-out infinite;
+  opacity: 0.9;
+}
+
+.coffee__cup-steam span:nth-child(2) { animation-delay: 0.5s; height: 26px; }
+.coffee__cup-steam span:nth-child(3) { animation-delay: 1s; }
+
+@keyframes steam-rise {
+  0% { transform: translateY(6px) scaleY(0.7); opacity: 0; }
+  40% { opacity: 0.8; }
+  100% { transform: translateY(-14px) scaleY(1.1); opacity: 0; }
+}
+
+.coffee__cup-body {
+  position: relative;
+  width: 88px;
+  height: 72px;
+  border-radius: 8px 8px 34px 34px;
+  background: linear-gradient(160deg, #FFFDF9 0%, #F5CAA2 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 14px 26px rgba(90, 60, 130, 0.28),
+    inset 0 2px 4px rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+
+.coffee__cup-liquid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  background: linear-gradient(90deg, #AC84CC, #9283D9 50%, #7EA9E4);
+  opacity: 0.85;
+}
+
+.coffee__cup-shine {
+  position: absolute;
+  top: 18px;
+  left: 12px;
+  width: 18px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  filter: blur(3px);
+}
+
+.coffee__cup-handle {
+  position: absolute;
+  right: -14px;
+  top: 22px;
+  width: 26px;
+  height: 30px;
+  border: 8px solid rgba(255, 253, 249, 0.95);
+  border-left-color: transparent;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(90, 60, 130, 0.2);
+}
+
+.coffee__cup-saucer {
+  width: 118px;
+  height: 14px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #FFFDF9, #F5CAA2);
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 10px 18px rgba(90, 60, 130, 0.25);
+}
+
+.glass-btn--pill {
+  width: auto;
+  height: auto;
+  border-radius: 30px;
+  padding: 12px 22px;
+  gap: 9px;
+  color: var(--soft-purple);
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.glass-btn--pill:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.glass-btn--pill svg {
+  width: 17px;
+  height: 17px;
+}
+
+.glass-btn--pill span {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.coffee__change-drink {
+  margin-top: 30px;
+}
+
+/* ---------- Right side: conversation ---------- */
+
+.coffee__right {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  max-height: 640px;
+  margin: auto 0;
+  padding: 8px 4px;
+}
+
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 6px 10px 16px;
+  scrollbar-width: thin;
+}
+
+.chat::-webkit-scrollbar { width: 6px; }
+.chat::-webkit-scrollbar-thumb { background: rgba(91, 74, 120, 0.25); border-radius: 10px; }
+
+.chat__bubble {
+  font-size: 15.5px;
+  line-height: 1.6;
+  font-weight: 400;
+  animation: bubble-in 0.4s cubic-bezier(.22,1,.36,1) both;
+}
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat__bubble--assistant {
+  align-self: flex-start;
+  max-width: 92%;
+  color: #4A3A63;
+}
+
+.chat__bubble--user {
+  align-self: flex-end;
+  max-width: 78%;
+  padding: 13px 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  color: #4A3A63;
+  box-shadow: 0 8px 22px rgba(91, 74, 120, 0.14), inset 0 1px 1px rgba(255,255,255,0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.coffee__chat-input {
+  margin-top: 14px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.coffee__chat-input input {
+  color: #4A3A63;
+}
+
+.coffee__chat-input input::placeholder {
+  color: rgba(74, 58, 99, 0.55);
+}
+
+.coffee__chat-input .ai-input__plus,
+.coffee__chat-input .ai-input__mic {
+  color: #5B4A78;
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.coffee__chat-input .ai-input__mic {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.ai-input__send {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--lavender), var(--pastel-blue));
+  color: #ffffff;
+  transition: transform 0.3s cubic-bezier(.22,1,.36,1), box-shadow 0.3s ease;
+  box-shadow: 0 6px 16px rgba(126, 169, 228, 0.45);
+}
+
+.ai-input__send svg { width: 18px; height: 18px; }
+
+.ai-input__send:hover {
+  transform: scale(1.08);
+  box-shadow: 0 8px 22px rgba(126, 169, 228, 0.6);
+}
+
+.ai-input__send:active {
+  transform: scale(0.94);
+}
+
+/* ---------- Nav — dark on the lighter sky background ---------- */
+
+.coffee__nav {
+  background: rgba(255, 255, 255, 0.4);
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.coffee__nav .nav-item {
+  color: rgba(74, 58, 99, 0.7);
+}
+
+.coffee__nav .nav-item:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.coffee__nav .nav-item.is-active {
+  color: var(--soft-purple);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 980px) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+    overflow-y: auto;
+  }
+
+  .coffee {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .coffee__bg {
+    position: fixed;
+  }
+
+  .topbar {
+    position: fixed;
+  }
+
+  .coffee__nav {
+    position: fixed;
+  }
+
+  .coffee__layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    padding: 90px 5vw 130px;
+    gap: 18px;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .coffee__left {
+    align-items: center;
+    text-align: center;
+    justify-content: flex-start;
+    padding-right: 0;
+  }
+
+  .coffee__subtitle { max-width: 480px; }
+
+  .coffee__scene { max-width: 320px; margin-top: 16px; min-height: 200px; }
+  .coffee__mascot { width: 150px; height: 150px; }
+  .coffee__cup { width: 76px; }
+  .coffee__cup-body { width: 70px; height: 58px; }
+  .coffee__cup-saucer { width: 94px; }
+
+  .coffee__right { max-height: 460px; }
+}
+
+@media (max-width: 560px) {
+  .coffee__layout { padding: 84px 5vw 116px; }
+  .coffee__title { font-size: 28px; }
+  .coffee__mascot { width: 120px; height: 120px; }
+  .chat__bubble { max-width: 88%; font-size: 13.5px; padding: 12px 14px; }
+  .coffee__right { padding: 16px; border-radius: 26px; }
+}

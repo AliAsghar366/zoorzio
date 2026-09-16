@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Cannot GET /api/app/track-app-event</pre>
+<script>/* zoorzio: route sign-in/get-started CTAs to login, or straight to the panel if already signed in */
+(function(){
+  var PANEL_URL = 'https://REPLACE-WITH-PANEL-APP-URL';
+  function hasToken(){
+    try { return !!localStorage.getItem('zoorzio_access_token'); } catch(e){ return false; }
+  }
+  document.querySelectorAll('.nh-header__cta,.nh-btn--hero-primary,.nh-cta__btn').forEach(function(b){
+    b.style.cursor = 'pointer';
+    b.addEventListener('click', function(e){
+      e.preventDefault();
+      location.href = hasToken() ? PANEL_URL : '/login/';
+    });
+  });
+  document.querySelectorAll('a[href$="/login/"]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      if (hasToken()) {
+        e.preventDefault();
+        location.href = PANEL_URL;
+      }
+      // not logged in: let the link's normal href take the user to /login/
+    });
+  });
+}());</script></body>
+</html>

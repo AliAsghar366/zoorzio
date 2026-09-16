@@ -1,0 +1,21 @@
+{
+  "name": "zoorzio-mainweb",
+  "version": "1.0.0",
+  "description": "Zoorzio marketing site + backend API",
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "cd apps/api && npm run start:dev",
+    "build:api": "cd apps/api && npm run build",
+    "start:api": "cd apps/api && npm run start:prod",
+    "test:api": "cd apps/api && npm run test",
+    "db:generate": "npm run generate --workspace=@anchor/database",
+    "db:migrate": "npm run migrate:dev --workspace=@anchor/database",
+    "migration:run": "npm run migrate:deploy --workspace=@anchor/database",
+    "db:seed": "npm run seed --workspace=@anchor/database"
+  }
+}

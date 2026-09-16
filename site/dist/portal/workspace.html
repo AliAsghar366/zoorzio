@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zoorzio Workspace</title>
+<link rel="icon" href="assets/images/zoorzio-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="workspace.css" />
+</head>
+<body>
+
+  <div class="ws">
+
+    <!-- Sidebar -->
+    <aside class="ws-sidebar">
+      <div class="ws-sidebar__top">
+        <div class="ws-brand">
+          <img src="assets/images/zoorzio-icon.png" alt="Zoorzio" class="ws-brand__icon" />
+          <span class="ws-brand__word">zoorzio</span>
+        </div>
+        <a href="index.html" class="ws-close" aria-label="Close workspace">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </a>
+      </div>
+
+      <nav class="ws-nav">
+        <button class="ws-nav__item" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v8.2c0 .7.6 1.3 1.3 1.3H10v-5h4v5h2.7c.7 0 1.3-.6 1.3-1.3V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Hall</span>
+        </button>
+        <button class="ws-nav__item is-active" data-view="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="13" width="7.5" height="7.5" rx="1.6" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="ws-nav__item" data-view="friends">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 19c.9-3.3 3-5 5.5-5s4.6 1.7 5.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="17" cy="8" r="2.3" stroke="currentColor" stroke-width="1.5"/><path d="M15.3 12.2c1.9-.4 3.7.6 4.7 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Friends</span>
+        </button>
+        <button class="ws-nav__item" data-view="integrations">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="17" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 10.5 14.5 8M9.5 13.5l5 3" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span>Integrations</span>
+        </button>
+        <button class="ws-nav__item" data-view="reminders">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 8.5a6 6 0 0 1 12 0v3.7l1.6 3.1H4.4L6 12.2V8.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 18.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span>Reminders</span>
+        </button>
+        <button class="ws-nav__item" data-view="calendars">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="15" rx="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span>Calendars</span>
+        </button>
+        <button class="ws-nav__item" data-view="lists">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.5 6h11M8.5 12h11M8.5 18h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="4.3" cy="6" r="1.2" fill="currentColor"/><circle cx="4.3" cy="12" r="1.2" fill="currentColor"/><circle cx="4.3" cy="18" r="1.2" fill="currentColor"/></svg>
+          <span>Lists</span>
+        </button>
+        <button class="ws-nav__item" data-view="tasks">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="16" height="16" rx="2.4" stroke="currentColor" stroke-width="1.6"/><path d="M8 12.5l2.3 2.3L16 9.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Tasks</span>
+        </button>
+        <button class="ws-nav__item" data-view="master">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3.5c-3.3 0-6 2.6-6 5.9 0 2.2 1.2 3.7 2.2 4.7.6.6.9 1.3.9 2.1V17h5.8v-.8c0-.8.3-1.5.9-2.1 1-1 2.2-2.5 2.2-4.7 0-3.3-2.7-5.9-6-5.9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.5 20h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span>Master Zoorzio</span>
+        </button>
+        <button class="ws-nav__item" data-view="personality">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3.5c1.2 2.6 3 4.4 5.6 5.6-2.6 1.2-4.4 3-5.6 5.6-1.2-2.6-3-4.4-5.6-5.6 2.6-1.2 4.4-3 5.6-5.6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M18 15.8c.5 1.1 1.3 1.6 2.3 1.9-1 .3-1.8.8-2.3 1.9-.5-1.1-1.3-1.6-2.3-1.9 1-.3 1.8-.8 2.3-1.9Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          <span>Choose a personality</span>
+        </button>
+      </nav>
+
+      <a href="profile.html" class="ws-profile">
+        <span class="ws-profile__avatar">ZB</span>
+        <span class="ws-profile__meta">
+          <span class="ws-profile__name">Zeesha bhai</span>
+          <span class="ws-profile__sub">+92 331 5049217</span>
+        </span>
+      </a>
+    </aside>
+
+    <!-- Main -->
+    <main class="ws-main">
+
+      <!-- Top-right controls (shown on all views) -->
+      <div class="ws-topbar">
+        <button class="ws-icon-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 8.5a6 6 0 0 1 12 0v3.7l1.6 3.1H4.4L6 12.2V8.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="ws-icon-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M19 19l-4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <button class="ws-icon-btn" aria-label="Mute">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 10v4h3.2L13 17.5v-11L8.2 10H5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M16.5 9.5l4 5M20.5 9.5l-4 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <!-- ===================== DASHBOARD VIEW ===================== -->
+      <section class="ws-view is-active" data-view-panel="dashboard">
+
+        <div class="ws-hero">
+          <p class="ws-hero__eyebrow">Welcome back, Zeesha bhai</p>
+          <h1 class="ws-hero__title">What's on your mind today?</h1>
+        </div>
+
+        <div class="ws-briefing">
+          <div class="ws-briefing__text">
+            <span class="ws-chip">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="15" rx="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              NEW
+            </span>
+            <h2>Weekly briefing</h2>
+            <p>See your week at a glance, prioritize what matters, and go into Monday ready.</p>
+            <button class="ws-btn ws-btn--gradient">Open briefing
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" class="ws-briefing__mascot" />
+        </div>
+
+        <div class="ws-cards">
+          <article class="ws-card">
+            <header class="ws-card__head ws-card__head--reminder">
+              <img src="assets/images/zoorzio-icon.png" alt="" class="ws-card__mascot" />
+              <h3>Reminder</h3>
+              <button class="ws-link-btn">View all</button>
+            </header>
+            <div class="ws-card__body">
+              <div class="ws-reminder-row">
+                <span class="ws-reminder-row__icon">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 8.5a6 6 0 0 1 12 0v3.7l1.6 3.1H4.4L6 12.2V8.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                </span>
+                <span>
+                  <span class="ws-reminder-row__title">Show me today's reminders, events and tasks</span>
+                  <span class="ws-reminder-row__sub">Tomorrow, 8:30 AM</span>
+                </span>
+              </div>
+            </div>
+            <div class="ws-card__chips">
+              <span class="ws-mini-chip">Zoorzio, remind me to call mom</span>
+              <span class="ws-mini-chip">Zoorzio, wake up at 7</span>
+            </div>
+          </article>
+
+          <article class="ws-card">
+            <header class="ws-card__head ws-card__head--calendar">
+              <img src="assets/images/zoorzio-icon.png" alt="" class="ws-card__mascot" />
+              <h3>Calendars</h3>
+              <button class="ws-link-btn">View more</button>
+            </header>
+            <div class="ws-card__body ws-card__body--center">
+              <p class="ws-card__daylabel">Friday<br /><strong>28</strong></p>
+              <p class="ws-card__empty">No events</p>
+            </div>
+            <div class="ws-card__chips">
+              <span class="ws-mini-chip">Zoorzio, schedule meeting at 3pm</span>
+              <span class="ws-mini-chip">Zoorzio, show my week</span>
+            </div>
+          </article>
+
+          <article class="ws-card">
+            <header class="ws-card__head ws-card__head--lists">
+              <img src="assets/images/zoorzio-icon.png" alt="" class="ws-card__mascot" />
+              <h3>Lists</h3>
+              <button class="ws-link-btn">View all</button>
+            </header>
+            <div class="ws-card__body ws-card__body--center">
+              <p class="ws-card__empty">No lists</p>
+            </div>
+            <div class="ws-card__chips">
+              <span class="ws-mini-chip">Zoorzio, add milk to shopping list</span>
+              <span class="ws-mini-chip">Zoorzio, create a to-do</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ===================== FRIENDS VIEW ===================== -->
+      <section class="ws-view" data-view-panel="friends">
+        <div class="ws-page-head">
+          <div>
+            <h1>Friend-to-friend Reminders</h1>
+            <p>Send reminders to friends via WhatsApp and manage your connections.</p>
+          </div>
+          <button class="ws-btn ws-btn--gradient">New contact
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="ws-pill-row">
+          <span class="ws-pill">Total friends: 0</span>
+          <span class="ws-pill">Pending: 0</span>
+          <span class="ws-pill">Active reminders: 0</span>
+          <span class="ws-pill">This month: 0</span>
+        </div>
+
+        <div class="ws-stat-grid">
+          <div class="ws-stat">
+            <div class="ws-stat__head"><span>Your Friends</span><span>0/200</span></div>
+            <div class="ws-stat__bar"><span style="width:0%"></span></div>
+            <p>200 left</p>
+          </div>
+          <div class="ws-stat">
+            <div class="ws-stat__head"><span>Daily reminders</span><span>0/50</span></div>
+            <div class="ws-stat__bar"><span style="width:0%"></span></div>
+            <p>50 left</p>
+          </div>
+          <div class="ws-stat">
+            <div class="ws-stat__head"><span>Monthly reminders</span><span>0/1000</span></div>
+            <div class="ws-stat__bar"><span style="width:0%"></span></div>
+            <p>1000 left</p>
+          </div>
+          <div class="ws-stat">
+            <div class="ws-stat__head"><span>Daily additions</span><span>0/20</span></div>
+            <div class="ws-stat__bar"><span style="width:0%"></span></div>
+            <p>20 left</p>
+          </div>
+        </div>
+
+        <div class="ws-search">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M19 19l-4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input type="text" placeholder="Search contacts" />
+        </div>
+
+        <div class="ws-empty-panel">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 19c.9-3.3 3-5 5.5-5s4.6 1.7 5.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="17" cy="8" r="2.3" stroke="currentColor" stroke-width="1.3"/><path d="M15.3 12.2c1.9-.4 3.7.6 4.7 3.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <h3>Ready to connect?</h3>
+          <p>Send friend requests and schedule reminders through WhatsApp.</p>
+          <button class="ws-btn ws-btn--gradient">Add a friend
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 8.5a6 6 0 0 1 12 0v3.7l1.6 3.1H4.4L6 12.2V8.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ===================== INTEGRATIONS VIEW ===================== -->
+      <section class="ws-view" data-view-panel="integrations">
+        <div class="ws-page-head">
+          <div>
+            <h1>Integrations</h1>
+            <p>Connect your favorite tools and boost your productivity.</p>
+          </div>
+          <button class="ws-btn ws-btn--gradient">View activity ledger</button>
+        </div>
+
+        <div class="ws-filter-row">
+          <div class="ws-tabs">
+            <button class="ws-tab is-active">All</button>
+            <button class="ws-tab">Active</button>
+            <button class="ws-tab">Documents</button>
+            <button class="ws-tab">Calendar</button>
+            <button class="ws-tab">Email</button>
+            <button class="ws-tab">Team Chat</button>
+          </div>
+          <div class="ws-search ws-search--compact">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M19 19l-4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <input type="text" placeholder="Search integrations" />
+          </div>
+        </div>
+
+        <div class="ws-integration-grid">
+          <article class="ws-integration">
+            <div class="ws-integration__head">
+              <span class="ws-integration__logo">G</span>
+              <span class="ws-badge ws-badge--connected">Connected</span>
+            </div>
+            <h3>Connect Google Workspace</h3>
+            <p>Connect your full suite of Google Workspace apps.</p>
+            <button class="ws-btn ws-btn--outline">Manage</button>
+          </article>
+          <article class="ws-integration">
+            <div class="ws-integration__head">
+              <span class="ws-integration__logo">31</span>
+              <span class="ws-badge ws-badge--connected">Connected</span>
+            </div>
+            <h3>Google Calendar</h3>
+            <p>Manage your schedule and get reminders directly in chat.</p>
+            <button class="ws-btn ws-btn--outline">Manage</button>
+          </article>
+          <article class="ws-integration">
+            <div class="ws-integration__head">
+              <span class="ws-integration__logo">Out</span>
+            </div>
+            <h3>Outlook Calendar</h3>
+            <p>Sync Outlook calendars and manage events from Zoorzio.</p>
+            <button class="ws-btn ws-btn--outline">Connect</button>
+          </article>
+          <article class="ws-integration">
+            <div class="ws-integration__head">
+              <span class="ws-integration__logo">Git</span>
+            </div>
+            <h3>GitHub</h3>
+            <p>Code hosting for version control and collaboration with issues and PRs.</p>
+            <button class="ws-btn ws-btn--outline">Connect</button>
+          </article>
+          <article class="ws-integration">
+            <div class="ws-integration__head">
+              <span class="ws-integration__logo">N</span>
+            </div>
+            <h3>Notion</h3>
+            <p>Centralizes notes, docs and tasks in one unified workspace.</p>
+            <button class="ws-btn ws-btn--outline">Connect</button>
+          </article>
+          <article class="ws-integration">
+            <div class="ws-integration__head">
+              <span class="ws-integration__logo">#</span>
+            </div>
+            <h3>Slack</h3>
+            <p>Channel-based messaging so your whole team stays in sync.</p>
+            <button class="ws-btn ws-btn--outline">Connect</button>
+          </article>
+        </div>
+      </section>
+
+      <!-- ===================== REMINDERS VIEW ===================== -->
+      <section class="ws-view" data-view-panel="reminders">
+        <div class="ws-page-head ws-page-head--tight">
+          <div class="ws-page-head__title-row">
+            <h1>Reminders</h1>
+            <img src="assets/images/zoorzio-icon.png" alt="" class="ws-page-head__mascot" />
+          </div>
+        </div>
+
+        <div class="ws-filter-row">
+          <div class="ws-search ws-search--wide">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M19 19l-4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <input type="text" placeholder="Search for a reminder" />
+          </div>
+          <button class="ws-btn ws-btn--gradient ws-btn--nowrap">New Reminder
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="ws-filter-row">
+          <div class="ws-tabs">
+            <button class="ws-tab is-active">All <em>1</em></button>
+            <button class="ws-tab">Today</button>
+            <button class="ws-tab">Upcoming <em>1</em></button>
+            <button class="ws-tab">Completed</button>
+          </div>
+        </div>
+
+        <p class="ws-section-label">Tomorrow · Aug 29</p>
+        <div class="ws-reminder-item">
+          <span class="ws-reminder-item__dot"></span>
+          <span class="ws-reminder-item__body">
+            <span class="ws-reminder-item__title">Show me today's reminders, events and tasks</span>
+            <span class="ws-reminder-item__meta">Tomorrow · 8:30 AM · in 11 hr · Next up · Daily · Daily Brief</span>
+          </span>
+        </div>
+      </section>
+
+      <!-- ===================== CALENDARS VIEW ===================== -->
+      <section class="ws-view" data-view-panel="calendars">
+        <div class="ws-page-head__title-row">
+          <h1>Calendars</h1>
+          <img src="assets/images/zoorzio-icon.png" alt="" class="ws-page-head__mascot" />
+        </div>
+
+        <div class="ws-calendar-layout">
+          <div class="ws-calendar">
+            <div class="ws-calendar__controls">
+              <div class="ws-tabs">
+                <button class="ws-tab is-active">Month</button>
+                <button class="ws-tab">Week</button>
+                <button class="ws-tab">Day</button>
+              </div>
+              <div class="ws-calendar__nav">
+                <button class="ws-btn ws-btn--outline">Today</button>
+                <span>August 2026</span>
+              </div>
+            </div>
+            <div class="ws-calendar-grid" id="calendarGrid"></div>
+          </div>
+
+          <aside class="ws-calendar-side">
+            <h3>Today's events</h3>
+            <p class="ws-calendar-side__date">August 28, 2026</p>
+            <img src="assets/images/zoorzio-icon.png" alt="" class="ws-calendar-side__mascot" />
+            <p class="ws-calendar-side__title">Nothing scheduled</p>
+            <p class="ws-calendar-side__sub">This day is completely free. A good window for deep work.</p>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ===================== LISTS VIEW ===================== -->
+      <section class="ws-view" data-view-panel="lists">
+        <div class="ws-page-head__title-row">
+          <h1>Lists</h1>
+          <img src="assets/images/zoorzio-icon.png" alt="" class="ws-page-head__mascot" />
+        </div>
+
+        <div class="ws-filter-row">
+          <div class="ws-search ws-search--wide">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M19 19l-4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <input type="text" id="listsSearch" placeholder="Search lists" />
+          </div>
+          <button class="ws-btn ws-btn--gradient ws-btn--nowrap" id="createListBtn">Create new list
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+
+        <div class="ws-filter-row">
+          <div class="ws-tabs">
+            <button class="ws-tab is-active">My lists</button>
+            <button class="ws-tab">Shared with me</button>
+          </div>
+          <div class="ws-tabs">
+            <button class="ws-tab is-active" id="listsGridBtn">Grid</button>
+            <button class="ws-tab" id="listsListBtn">List</button>
+          </div>
+        </div>
+
+        <div class="ws-list-grid" id="listGrid"></div>
+
+        <div class="ws-empty-panel" id="listsEmpty">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.5 6h11M8.5 12h11M8.5 18h11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="4.3" cy="6" r="1.1" fill="currentColor"/><circle cx="4.3" cy="12" r="1.1" fill="currentColor"/><circle cx="4.3" cy="18" r="1.1" fill="currentColor"/></svg>
+          <h3>No lists yet</h3>
+          <p>Create your first list to get started.</p>
+          <button class="ws-btn ws-btn--gradient" id="createListBtnEmpty">Create new list
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ===================== TASKS VIEW ===================== -->
+      <section class="ws-view" data-view-panel="tasks">
+        <div class="ws-page-head">
+          <div>
+            <h1>Your Boards</h1>
+            <p>Boards with your upcoming tasks.</p>
+          </div>
+        </div>
+
+        <div class="ws-filter-row">
+          <div class="ws-tabs">
+            <button class="ws-tab is-active">My boards</button>
+            <button class="ws-tab">Shared with me</button>
+          </div>
+        </div>
+
+        <p class="ws-section-label">Today</p>
+
+        <div class="ws-board-grid" id="boardGrid">
+          <article class="ws-board">
+            <header class="ws-board__head">
+              <span class="ws-board__avatar">Z</span>
+              <span>Today's board</span>
+            </header>
+            <ul class="ws-board__tasks">
+              <li>
+                <span>Plan the weekend trip</span>
+                <span class="ws-board__meta"><em class="ws-priority ws-priority--medium">Medium</em></span>
+              </li>
+              <li>
+                <span>Prep the client deck</span>
+                <span class="ws-board__meta"><em class="ws-priority ws-priority--medium">Medium</em></span>
+              </li>
+              <li>
+                <span>Water the plants</span>
+                <span class="ws-board__meta"><em class="ws-priority ws-priority--low">Low</em></span>
+              </li>
+            </ul>
+          </article>
+
+          <button class="ws-board ws-board--add" id="createBoardBtn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span>Create new board</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ===================== MASTER ZOORZIO VIEW ===================== -->
+      <section class="ws-view" data-view-panel="master">
+        <div class="ws-page-head">
+          <div>
+            <h1>Master Zoorzio</h1>
+            <p>Watch, try, and unlock rewards as you learn.</p>
+          </div>
+        </div>
+
+        <div class="ws-master-grid">
+          <button class="ws-master-card ws-master-card--a" data-master="actions">
+            <div class="ws-master-card__art">
+              <img src="assets/images/zoorzio-icon.png" alt="" />
+            </div>
+            <div class="ws-master-card__foot">
+              <h3>Actions</h3>
+              <p>0/21 completed · Learn by doing</p>
+            </div>
+          </button>
+
+          <button class="ws-master-card ws-master-card--b" data-master="tricks">
+            <div class="ws-master-card__art">
+              <img src="assets/images/zoorzio-icon.png" alt="" />
+            </div>
+            <div class="ws-master-card__foot">
+              <h3>Tricks</h3>
+              <p>Small tricks. Big time saved.</p>
+            </div>
+          </button>
+
+          <button class="ws-master-card ws-master-card--c" data-master="cases">
+            <div class="ws-master-card__art">
+              <img src="assets/images/zoorzio-icon.png" alt="" />
+            </div>
+            <div class="ws-master-card__foot">
+              <h3>Use Cases</h3>
+              <p>Ready-to-use prompts for daily life.</p>
+            </div>
+          </button>
+        </div>
+
+        <div class="ws-master-detail" id="masterDetail">
+          <p>Pick a category above to see what's inside.</p>
+        </div>
+      </section>
+
+      <!-- ===================== PERSONALITY VIEW ===================== -->
+      <section class="ws-view" data-view-panel="personality">
+        <div class="ws-page-head">
+          <div>
+            <h1>Personalize Zoorzio</h1>
+            <p>Make Zoorzio feel more like you.</p>
+          </div>
+        </div>
+
+        <div class="ws-personality-layout">
+          <div class="ws-personality-options">
+            <div class="ws-option-card is-active" id="personalityCard" role="button" tabindex="0">
+              <span class="ws-option-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10.5" r="1" fill="currentColor"/><circle cx="15" cy="10.5" r="1" fill="currentColor"/><path d="M9 15c1 .8 2 1.2 3 1.2s2-.4 3-1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </span>
+              <h3>Personality</h3>
+              <p>Choose how Zoorzio talks to you.</p>
+
+              <div class="ws-personality-chips" id="personalityChips">
+                <button class="ws-chip-select is-active" data-tone="Friendly">Friendly</button>
+                <button class="ws-chip-select" data-tone="Professional">Professional</button>
+                <button class="ws-chip-select" data-tone="Playful">Playful</button>
+                <button class="ws-chip-select" data-tone="Calm">Calm</button>
+              </div>
+            </div>
+
+            <div class="ws-option-card" id="dressCard" role="button" tabindex="0">
+              <span class="ws-option-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 4 5 6.5 6.5 9 8 8v11h8V8l1.5 1 1.5-2.5L16 4l-2 1.5h-4L8 4Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              </span>
+              <h3>Dress Zoorzio</h3>
+              <p>Style Zoorzio with unlocked items.</p>
+              <span class="ws-option-card__hint">Coming soon</span>
+            </div>
+          </div>
+
+          <div class="ws-personality-preview">
+            <div class="ws-personality-pedestal">
+              <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" />
+            </div>
+            <p class="ws-personality-preview__label">Currently <strong id="toneLabel">Friendly</strong></p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+<script src="workspace.js"></script>
+</body>
+</html>

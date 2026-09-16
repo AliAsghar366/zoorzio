@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in · Zoorzio</title>
+  <link rel="icon" href="/portal/assets/images/zoorzio-icon.png" />
+  <link rel="preconnect" href="/_ext/fonts.googleapis.com" />
+  <link rel="preconnect" href="/_ext/fonts.gstatic.com" crossorigin />
+  <link href="/_ext/fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --plum: rgba(90, 60, 130, 1);
+      --plum-soft: rgba(90, 60, 130, 0.4);
+      --glass: rgba(255, 255, 255, 0.14);
+      --glass-strong: rgba(255, 255, 255, 0.55);
+      --line: rgba(255, 255, 255, 0.22);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: #fff;
+      background: #2a1c3d url('/portal/assets/images/candy-bar-bg.png') center/cover no-repeat fixed;
+      position: relative;
+    }
+    body::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(160deg, rgba(42,28,61,0.35), rgba(90,60,130,0.5));
+      backdrop-filter: blur(2px);
+    }
+    .card {
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 40px 32px 32px;
+      box-shadow: 0 20px 60px rgba(20, 12, 35, 0.45);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      text-align: center;
+    }
+    .brand {
+      width: 72px; height: 72px;
+      margin: 0 auto 18px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.9);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 24px rgba(20,12,35,0.35);
+    }
+    .brand img { width: 52px; height: 52px; object-fit: contain; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 4px; }
+    .sub { font-size: 0.85rem; opacity: 0.8; margin-bottom: 26px; font-weight: 300; }
+    label { display: block; text-align: left; font-size: 0.78rem; font-weight: 500; margin: 0 0 6px 4px; opacity: 0.9; }
+    .field {
+      width: 100%;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 13px 15px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border-color .18s, background .18s;
+    }
+    .field::placeholder { color: rgba(255,255,255,0.55); }
+    .field:focus { border-color: var(--glass-strong); background: rgba(255,255,255,0.18); }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-family: inherit;
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: #3a2555;
+      background: linear-gradient(135deg, #ffffff, #f3e9ff);
+      cursor: pointer;
+      transition: transform .12s, box-shadow .18s;
+      box-shadow: 0 8px 22px rgba(20,12,35,0.3);
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 12px 28px rgba(20,12,35,0.4); }
+    .btn:active { transform: translateY(0); }
+    .foot { margin-top: 20px; font-size: 0.8rem; opacity: 0.8; font-weight: 300; }
+    .foot a { color: #fff; font-weight: 500; text-decoration: none; border-bottom: 1px solid var(--line); }
+    .note {
+      margin-top: 18px;
+      font-size: 0.68rem;
+      line-height: 1.4;
+      opacity: 0.6;
+      font-weight: 300;
+    }
+    .back { position: absolute; top: 22px; left: 24px; z-index: 2; color: #fff; text-decoration: none; font-size: 0.85rem; opacity: 0.85; }
+    .back:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+  <a class="back" href="/">← Home</a>
+  <form class="card" id="loginForm" autocomplete="off" novalidate>
+    <div class="brand"><img src="/portal/assets/images/zoorzio-icon.png" alt="Zoorzio" /></div>
+    <h1>Welcome to Zoorzio</h1>
+    <p class="sub">Sign in to open your workspace</p>
+
+    <label for="email">Email</label>
+    <input class="field" id="email" name="email" type="email" placeholder="you@example.com" required />
+
+    <label for="pw">Password</label>
+    <input class="field" id="pw" name="pw" type="password" placeholder="••••••••" required />
+
+    <button class="btn" type="submit" id="loginSubmit">Log in →</button>
+
+    <p class="note" id="loginError" style="display:none;color:#ffd7d7;font-weight:500;"></p>
+    <p class="note">Your email and password are sent directly to the Zoorzio
+      API over HTTPS to sign you in. Nothing is stored in this page beyond a
+      short-lived session token.</p>
+  </form>
+
+  <script>
+    // --- Zoorzio auth config -------------------------------------------
+    // Fill these in once the backend (apps/api) and panel (apps/web) are
+    // deployed. Until ZOORZIO_API_URL is a real, reachable URL, login will
+    // show a "service not configured yet" error instead of silently failing.
+    var ZOORZIO_API_URL = 'https://REPLACE-WITH-RAILWAY-API-URL.up.railway.app/api';
+    var ZOORZIO_PANEL_URL = 'https://REPLACE-WITH-PANEL-APP-URL';
+    // ---------------------------------------------------------------------
+
+    var form = document.getElementById('loginForm');
+    var submitBtn = document.getElementById('loginSubmit');
+    var errorEl = document.getElementById('loginError');
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      errorEl.style.display = 'none';
+
+      if (ZOORZIO_API_URL.indexOf('REPLACE-WITH') !== -1) {
+        showError('Sign-in isn’t connected yet — the backend URL hasn’t been configured.');
+        return;
+      }
+
+      var email = document.getElementById('email').value.trim();
+      var password = document.getElementById('pw').value;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in…';
+
+      fetch(ZOORZIO_API_URL + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password }),
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) {
+              throw new Error((data && data.message) || 'Invalid email or password.');
+            }
+            return data;
+          });
+        })
+        .then(function (data) {
+          // data: { user: {...}, accessToken, refreshToken }
+          try {
+            localStorage.setItem('zoorzio_access_token', data.accessToken);
+            localStorage.setItem('zoorzio_refresh_token', data.refreshToken);
+            if (data.user && data.user.name) {
+              localStorage.setItem('zoorzio_user', data.user.name);
+            }
+          } catch (err) {}
+
+          var target = new URL(ZOORZIO_PANEL_URL);
+          target.searchParams.set('accessToken', data.accessToken);
+          target.searchParams.set('refreshToken', data.refreshToken);
+          window.location.href = target.toString();
+        })
+        .catch(function (err) {
+          showError(err.message || 'Something went wrong. Please try again.');
+        })
+        .finally(function () {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log in →';
+        });
+    });
+  </script>
+</body>
+</html>

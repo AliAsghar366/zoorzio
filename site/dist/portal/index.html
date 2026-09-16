@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zoorzio Portal</title>
+<link rel="icon" href="assets/images/zoorzio-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="portal">
+
+    <!-- Background -->
+    <div class="portal__bg" id="portalBg"></div>
+    <div class="portal__bg-overlay"></div>
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <a href="profile.html" class="glass-btn glass-btn--profile" aria-label="Profile">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="8" r="3.5" stroke="white" stroke-width="1.6"/>
+          <path d="M4.5 19.2c1.6-3.2 4.4-4.9 7.5-4.9s5.9 1.7 7.5 4.9" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </a>
+
+      <button class="glass-btn glass-btn--action" aria-label="Zoorzio actions">
+        <img src="assets/images/zoorzio-icon.png" alt="Zoorzio" class="glass-btn__icon" />
+      </button>
+    </header>
+
+    <!-- Center hero -->
+    <main class="hero">
+      <div class="hero__mascot">
+        <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" />
+      </div>
+
+      <h1 class="hero__title">Good evening, Zeesha</h1>
+      <p class="hero__subtitle">Where do you want to go?</p>
+
+      <!-- Main AI input -->
+      <div class="ai-input">
+        <button class="ai-input__plus" aria-label="Add">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <input type="text" placeholder="What can I help you with?" aria-label="Ask Zoorzio" />
+        <button class="ai-input__mic" aria-label="Voice input">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Side action cards -->
+      <div class="side-cards">
+        <a href="workspace.html" class="side-card side-card--left">
+          <span class="side-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3.5" y="6" width="17" height="12" rx="2.4" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M8.5 6V4.8A1.8 1.8 0 0 1 10.3 3h3.4a1.8 1.8 0 0 1 1.8 1.8V6" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M3.5 12.5h17" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+          </span>
+          <span class="side-card__label">Your Workspace</span>
+          <span class="side-card__main">Get things done</span>
+        </a>
+
+        <a href="explore.html" class="side-card side-card--right">
+          <span class="side-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M15.2 8.8 13.4 13.4 8.8 15.2 10.6 10.6 15.2 8.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="side-card__label">Explore Zoorzio</span>
+          <span class="side-card__main">Discover more</span>
+        </a>
+      </div>
+    </main>
+
+    <!-- Bottom discovery card -->
+    <div class="discovery-card" id="discoveryCard">
+      <span class="discovery-card__icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3.5c1.4 3 3.6 4.4 6.5 5.2-2.9.8-5.1 2.2-6.5 5.2-1.4-3-3.6-4.4-6.5-5.2 2.9-.8 5.1-2.2 6.5-5.2Z" fill="white" fill-opacity="0.9"/>
+          <path d="M18.3 15.8c.7 1.5 1.8 2.2 3.2 2.6-1.4.4-2.5 1.1-3.2 2.6-.7-1.5-1.8-2.2-3.2-2.6 1.4-.4 2.5-1.1 3.2-2.6Z" fill="white" fill-opacity="0.7"/>
+        </svg>
+      </span>
+      <div class="discovery-card__text">
+        <p class="discovery-card__eyebrow">Continue Exploring Zoorzio</p>
+        <p class="discovery-card__title">Discover your workspace</p>
+        <p class="discovery-card__sub">Unlock your next experience</p>
+      </div>
+      <button class="discovery-card__close" aria-label="Dismiss">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 6l12 12M18 6 6 18" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item is-active" data-label="Portal">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 10v8.2c0 .7.6 1.3 1.3 1.3H10v-5h4v5h2.7c.7 0 1.3-.6 1.3-1.3V10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Portal</span>
+      </button>
+      <a href="workspace.html" class="nav-item" data-label="Workspace">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3.5" y="6.5" width="17" height="11.5" rx="2" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M8.5 6.5V5a1.7 1.7 0 0 1 1.7-1.7h3.6A1.7 1.7 0 0 1 15.5 5v1.5" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <span>Workspace</span>
+      </a>
+      <a href="coffee.html" class="nav-item" data-label="Coffee">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 9h11.5v5.3A4.7 4.7 0 0 1 11.8 19H9.7A4.7 4.7 0 0 1 5 14.3V9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M16.5 10.2H18a2.3 2.3 0 0 1 0 4.6h-1.5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M8 5.2c0 .8.9 1-.1 2S7 9 7 9M11.3 5.2c0 .8.9 1-.1 2S10.3 9 10.3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span>Coffee</span>
+      </a>
+      <a href="explore.html" class="nav-item" data-label="Explore">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M15 9 13.2 13.2 9 15l1.8-4.2L15 9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        </svg>
+        <span>Explore</span>
+      </a>
+      <button class="nav-item" data-label="More" id="moreBtn" aria-expanded="false" aria-controls="morePanel">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="5.5" cy="12" r="1.4" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
+          <circle cx="18.5" cy="12" r="1.4" fill="currentColor"/>
+        </svg>
+        <span>More</span>
+      </button>
+    </nav>
+
+    <!-- More popover -->
+    <div class="more-overlay" id="moreOverlay"></div>
+    <div class="more-panel" id="morePanel" role="menu" aria-hidden="true">
+      <a href="workspace.html#friends" class="more-item" role="menuitem">
+        <span class="more-item__icon more-item__icon--blue">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 19c.9-3.3 3-5 5.5-5s4.6 1.7 5.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="17" cy="8" r="2.3" stroke="currentColor" stroke-width="1.5"/><path d="M15.3 12.2c1.9-.4 3.7.6 4.7 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        <span class="more-item__text">
+          <strong>Friends</strong>
+          <em>0 partners</em>
+        </span>
+      </a>
+
+      <a href="workspace.html#personality" class="more-item" role="menuitem">
+        <span class="more-item__icon more-item__icon--pink">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.6"/><path d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9 6.3 6.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </span>
+        <span class="more-item__text">
+          <strong>Personalize</strong>
+          <em>customize</em>
+        </span>
+      </a>
+
+      <a href="workspace.html#integrations" class="more-item" role="menuitem">
+        <span class="more-item__icon more-item__icon--purple">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="17" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 10.5 14.5 8M9.5 13.5l5 3" stroke="currentColor" stroke-width="1.5"/></svg>
+        </span>
+        <span class="more-item__text">
+          <strong>Integrations</strong>
+          <em>2 active</em>
+        </span>
+      </a>
+
+      <a href="workspace.html#master" class="more-item more-item--stack" role="menuitem">
+        <span class="more-item__row">
+          <span class="more-item__icon more-item__icon--cream">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3.5c1.2 2.6 3 4.4 5.6 5.6-2.6 1.2-4.4 3-5.6 5.6-1.2-2.6-3-4.4-5.6-5.6 2.6-1.2 4.4-3 5.6-5.6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="more-item__text">
+            <strong>Master Zoorzio</strong>
+            <em>0/21 actions</em>
+          </span>
+        </span>
+        <span class="more-item__bar"><span style="width: 4%;"></span></span>
+      </a>
+    </div>
+
+  </div>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Encuentra tu plan | Zoorzio</title>
+<meta name="description" content="Responde tres preguntas rápidas y te recomendamos el plan de Zoorzio que de verdad se ajusta a tu forma de trabajar. Sin ventas forzadas.">
+<link rel="icon" href="/web-app-manifest-192x192.png?v=zoorzio3" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+  :root{
+    --nh-blue:#557BF4;
+    --nh-pink:#FF66C4;
+    --nh-purple:#8b6ef0;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Figtree,system-ui,-apple-system,Segoe UI,sans-serif;
+    background:linear-gradient(180deg,#7EA9E4 0%,#9283D9 40%,#DC8CC5 100%);
+    min-height:100vh;
+    color:#1B0E3D;
+  }
+  a{text-decoration:none}
+  .pf-header{
+    display:flex;align-items:center;justify-content:space-between;
+    max-width:1180px;margin:0 auto;padding:20px 24px;
+  }
+  .pf-header__logo{color:#fff;font-weight:800;font-size:22px;letter-spacing:-0.02em}
+  .pf-header__logo img{height:28px;vertical-align:middle;margin-right:2px}
+  .pf-header__back{
+    color:#fff;font-weight:600;font-size:14px;
+    background:rgba(255,255,255,0.18);
+    padding:10px 18px;border-radius:999px;
+    backdrop-filter:blur(8px);
+  }
+  .pf-wrap{max-width:1000px;margin:0 auto;padding:24px 20px 80px}
+  .pf-progress{
+    display:flex;gap:8px;justify-content:center;margin:0 0 28px;
+  }
+  .pf-progress__dot{
+    width:36px;height:5px;border-radius:999px;
+    background:rgba(255,255,255,0.35);
+    transition:background .25s ease;
+  }
+  .pf-progress__dot.is-done, .pf-progress__dot.is-active{background:#fff}
+
+  .pf-title{
+    color:#fff;text-align:center;font-size:clamp(24px,3.6vw,36px);
+    font-weight:800;margin:0 0 8px;
+  }
+  .pf-subtitle{color:rgba(255,255,255,0.88);text-align:center;font-size:15px;margin:0 0 30px}
+
+  .pf-card{
+    background:rgba(255,255,255,0.14);
+    border:1px solid rgba(255,255,255,0.35);
+    border-radius:32px;
+    padding:28px;
+    display:flex;gap:24px;
+    backdrop-filter:blur(10px);
+  }
+  .pf-card__left{
+    flex:0 0 300px;
+    background:linear-gradient(135deg,var(--nh-blue),var(--nh-purple));
+    border-radius:24px;
+    padding:32px 28px;
+    position:relative;
+    display:flex;flex-direction:column;justify-content:center;
+    overflow:hidden;
+    min-height:220px;
+  }
+  .pf-card__left img{position:absolute;top:20px;right:20px;width:76px;height:76px}
+  .pf-card__left h2{color:#fff;font-size:24px;line-height:1.25;margin:0;font-weight:800}
+  .pf-card__left .pf-step-label{color:rgba(255,255,255,0.75);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+
+  .pf-options{flex:1;display:flex;flex-direction:column;gap:14px;justify-content:center}
+  .pf-option{
+    display:flex;align-items:center;gap:16px;
+    background:rgba(255,255,255,0.92);
+    border:2px solid transparent;
+    border-radius:18px;
+    padding:16px 20px;
+    cursor:pointer;
+    transition:border-color .2s ease, transform .15s ease, background .2s ease;
+  }
+  .pf-option:hover{transform:translateY(-1px)}
+  .pf-option.is-selected{border-color:var(--nh-blue);background:#fff}
+  .pf-option__icon{
+    flex:0 0 42px;height:42px;width:42px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;
+  }
+  .pf-option__icon svg{width:20px;height:20px}
+  .pf-option__label{flex:1;font-size:16px;font-weight:600;color:#1B0E3D}
+  .pf-option__radio{
+    flex:0 0 22px;height:22px;width:22px;border-radius:50%;
+    border:2px solid #c7c9db;position:relative;flex-shrink:0;
+  }
+  .pf-option.is-selected .pf-option__radio{border-color:var(--nh-blue)}
+  .pf-option.is-selected .pf-option__radio::after{
+    content:"";position:absolute;inset:4px;border-radius:50%;background:var(--nh-blue);
+  }
+
+  .pf-nav{display:flex;justify-content:space-between;margin-top:22px}
+  .pf-btn{
+    font-family:inherit;font-weight:700;font-size:14px;border:none;cursor:pointer;
+    padding:11px 22px;border-radius:999px;
+  }
+  .pf-btn--ghost{background:rgba(255,255,255,0.18);color:#fff}
+  .pf-btn--ghost:disabled{opacity:.4;cursor:not-allowed}
+  .pf-btn--primary{background:linear-gradient(90deg,var(--nh-blue),var(--nh-pink));color:#fff}
+  .pf-btn--primary:disabled{opacity:.4;cursor:not-allowed}
+
+  .pf-screen{display:none}
+  .pf-screen.is-active{display:block}
+
+  .pf-loading{
+    text-align:center;padding:70px 20px;
+  }
+  .pf-loading__orb{
+    width:74px;height:74px;margin:0 auto 26px;
+    animation:pf-pulse 1.1s ease-in-out infinite;
+  }
+  .pf-loading__orb svg{width:100%;height:100%;filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))}
+  @keyframes pf-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .pf-loading h2{color:#fff;font-size:24px;font-weight:800;margin:0 0 26px}
+  .pf-checklist{max-width:340px;margin:0 auto;text-align:left;display:flex;flex-direction:column;gap:14px}
+  .pf-checklist__item{
+    display:flex;align-items:center;gap:12px;color:rgba(255,255,255,0.6);
+    font-size:15px;font-weight:600;transition:color .3s ease;
+  }
+  .pf-checklist__item.is-done{color:#fff}
+  .pf-checklist__mark{
+    flex:0 0 22px;height:22px;width:22px;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.4);position:relative;
+  }
+  .pf-checklist__item.is-done .pf-checklist__mark{background:#fff;border-color:#fff}
+  .pf-checklist__item.is-done .pf-checklist__mark::after{
+    content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;
+    border-right:2px solid var(--nh-blue);border-bottom:2px solid var(--nh-blue);
+    transform:rotate(45deg);
+  }
+
+  .pf-result{
+    background:rgba(255,255,255,0.96);
+    border-radius:28px;
+    padding:32px;
+  }
+  .pf-result__badge{
+    display:inline-block;font-size:12px;font-weight:700;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--nh-blue);
+    background:#EEF1FF;padding:5px 12px;border-radius:999px;margin-bottom:12px;
+  }
+  .pf-result__plan{font-size:32px;font-weight:800;margin:0 0 10px;
+    background:linear-gradient(90deg,var(--nh-blue),var(--nh-pink));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .pf-result__why{color:#4b4b5c;font-size:15px;line-height:1.6;margin:0 0 20px;max-width:560px}
+  .pf-result__price-row{display:flex;align-items:baseline;gap:8px;margin-bottom:22px}
+  .pf-result__price{font-size:30px;font-weight:800}
+  .pf-result__period{color:#7a7a8c;font-size:14px}
+  .pf-result__actions{display:flex;gap:12px;flex-wrap:wrap}
+  .pf-result__cta{
+    background:linear-gradient(90deg,var(--nh-blue),var(--nh-pink));
+    color:#fff;font-weight:700;font-size:15px;
+    padding:13px 26px;border-radius:999px;white-space:nowrap;
+  }
+  .pf-result__restart{
+    color:#1B0E3D;font-weight:600;font-size:15px;
+    background:#f1f1f6;padding:13px 22px;border-radius:999px;border:none;cursor:pointer;
+    font-family:inherit;
+  }
+
+  .pf-footer-link{
+    display:block;text-align:center;margin-top:24px;
+    color:#fff;font-weight:600;font-size:14px;
+    background:rgba(255,255,255,0.16);
+    padding:11px 22px;border-radius:999px;
+    max-width:200px;margin-left:auto;margin-right:auto;
+    backdrop-filter:blur(8px);
+  }
+  @media (max-width:760px){
+    .pf-card{flex-direction:column}
+    .pf-card__left{flex:none;min-height:auto}
+    .pf-result__actions{flex-direction:column}
+  }
+</style>
+</head>
+<body>
+<header class="pf-header">
+  <a class="pf-header__logo" href="/es/"><img src="/logo.png" alt="">Zoorzio</a>
+  <a class="pf-header__back" href="/pricing/">Ver todos los planes</a>
+</header>
+<main class="pf-wrap">
+
+  <div class="pf-progress" id="pf-progress">
+    <span class="pf-progress__dot" data-step="0"></span>
+    <span class="pf-progress__dot" data-step="1"></span>
+    <span class="pf-progress__dot" data-step="2"></span>
+    <span class="pf-progress__dot" data-step="3"></span>
+  </div>
+
+  <h1 class="pf-title" id="pf-title">Tres preguntas rápidas, una respuesta honesta</h1>
+  <p class="pf-subtitle" id="pf-subtitle">Nada de trampas — solo lo necesario para llevarte al plan correcto.</p>
+
+  <!-- Screen 0: Question 1 -->
+  <section class="pf-screen is-active" data-screen="0">
+    <div class="pf-card">
+      <div class="pf-card__left">
+        <div class="pf-step-label">Pregunta 1 de 3</div>
+        <h2>¿Qué quieres quitarte de encima primero?</h2>
+      </div>
+      <div class="pf-options" data-question="q1">
+        <div class="pf-option" data-value="gold">
+          <span class="pf-option__icon" style="background:#ff6fa3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+          <span class="pf-option__label">Que nada se me escape</span>
+          <span class="pf-option__radio"></span>
+        </div>
+        <div class="pf-option" data-value="platinum">
+          <span class="pf-option__icon" style="background:#7b6ef0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
+          <span class="pf-option__label">Empezar cada día ya organizado</span>
+          <span class="pf-option__radio"></span>
+        </div>
+        <div class="pf-option" data-value="diamond">
+          <span class="pf-option__icon" style="background:#ff9a5a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 11-14h-7l1-6z"/></svg></span>
+          <span class="pf-option__label">Que quede resuelto sin que yo intervenga</span>
+          <span class="pf-option__radio"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screen 1: Question 2 -->
+  <section class="pf-screen" data-screen="1">
+    <div class="pf-card">
+      <div class="pf-card__left">
+        <div class="pf-step-label">Pregunta 2 de 3</div>
+        <h2>¿Cuánto estás manejando en realidad?</h2>
+      </div>
+      <div class="pf-options" data-question="q2">
+        <div class="pf-option" data-value="gold">
+          <span class="pf-option__icon" style="background:#ff6fa3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg></span>
+          <span class="pf-option__label">Sobre todo, lo mío</span>
+          <span class="pf-option__radio"></span>
+        </div>
+        <div class="pf-option" data-value="platinum">
+          <span class="pf-option__icon" style="background:#7b6ef0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2 21c0-3.5 3-6 6-6M22 21c0-3.5-3-6-6-6"/></svg></span>
+          <span class="pf-option__label">Trabajo, casa y todo lo demás</span>
+          <span class="pf-option__radio"></span>
+        </div>
+        <div class="pf-option" data-value="diamond">
+          <span class="pf-option__icon" style="background:#ff9a5a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+          <span class="pf-option__label">Soy el punto por donde pasa todo</span>
+          <span class="pf-option__radio"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screen 2: Question 3 -->
+  <section class="pf-screen" data-screen="2">
+    <div class="pf-card">
+      <div class="pf-card__left">
+        <div class="pf-step-label">Pregunta 3 de 3</div>
+        <h2>¿Qué es lo que más te importa?</h2>
+      </div>
+      <div class="pf-options" data-question="q3">
+        <div class="pf-option" data-value="gold">
+          <span class="pf-option__icon" style="background:#ff6fa3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <span class="pf-option__label">Que lo básico funcione bien</span>
+          <span class="pf-option__radio"></span>
+        </div>
+        <div class="pf-option" data-value="platinum">
+          <span class="pf-option__icon" style="background:#7b6ef0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg></span>
+          <span class="pf-option__label">Recuperar tiempo de verdad</span>
+          <span class="pf-option__radio"></span>
+        </div>
+        <div class="pf-option" data-value="diamond">
+          <span class="pf-option__icon" style="background:#ff9a5a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2M9 13h.01M15 13h.01"/></svg></span>
+          <span class="pf-option__label">No tener que tocarlo yo</span>
+          <span class="pf-option__radio"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screen 3: loading -->
+  <section class="pf-screen" data-screen="3">
+    <div class="pf-loading">
+      <div class="pf-loading__orb"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="ocean" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="#8fd3ff"/><stop offset="45%" stop-color="#4a9dee"/><stop offset="100%" stop-color="#1c4f9c"/></radialGradient><radialGradient id="shade" cx="35%" cy="28%" r="80%"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="35%" stop-color="#ffffff" stop-opacity="0"/><stop offset="100%" stop-color="#00224d" stop-opacity="0.35"/></radialGradient></defs><circle cx="50" cy="50" r="48" fill="url(#ocean)"/><g fill="#5cc06a" opacity="0.95"><path d="M30 22c6-4 14-3 17 2 3 4-1 8-6 9-4 1-6 5-11 4-6-1-8-8-4-11 1-2 2-3 4-4z"/><path d="M58 18c8-2 17 2 19 9 2 6-4 10-11 9-5-1-7 3-12 1-6-2-7-9-2-13 2-2 4-4 6-6z"/><path d="M20 48c5-3 12-2 14 3 2 4-2 7-6 9-3 2-3 6-8 5-6-1-8-8-4-11 1-2 2-4 4-6z"/><path d="M62 46c7-3 16 0 18 6 2 5-3 9-9 9-4 0-6 4-11 2-5-2-6-8-2-11 1-2 3-4 4-6z"/><path d="M38 66c6-2 13 0 15 5 1 4-3 7-8 7-4 0-5 4-10 2-5-2-5-8-1-11 1-1 2-2 4-3z"/></g><circle cx="50" cy="50" r="48" fill="url(#shade)"/></svg></div>
+      <h2>Buscando tu plan</h2>
+      <div class="pf-checklist" id="pf-checklist">
+        <div class="pf-checklist__item" data-check="0"><span class="pf-checklist__mark"></span> Leyendo lo que más necesitas</div>
+        <div class="pf-checklist__item" data-check="1"><span class="pf-checklist__mark"></span> Midiendo cuánto estás manejando</div>
+        <div class="pf-checklist__item" data-check="2"><span class="pf-checklist__mark"></span> Ajustándolo al nivel correcto</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screen 4: result -->
+  <section class="pf-screen" data-screen="4">
+    <div class="pf-result">
+      <div class="pf-result__badge">Tu combinación honesta</div>
+      <div class="pf-result__plan" id="pf-result-plan">Gold</div>
+      <p class="pf-result__why" id="pf-result-why"></p>
+      <div class="pf-result__price-row">
+        <span class="pf-result__price" id="pf-result-price">$3.5</span>
+        <span class="pf-result__period">/mes · 7 días gratis</span>
+      </div>
+      <div class="pf-result__actions">
+        <a class="pf-result__cta" id="pf-result-cta" href="/pricing/#plan-origin">Ver plan Gold</a>
+        <button class="pf-result__restart" id="pf-restart" type="button">Empezar de nuevo</button>
+      </div>
+    </div>
+  </section>
+
+  <a class="pf-footer-link" href="/pricing/">Ver todos los planes</a>
+</main>
+
+<script>
+(function(){
+  var PLAN_DATA = {
+    gold: {
+      name: 'Gold', price: '$3.5',
+      why: "Tus respuestas apuntan a lo básico bien resuelto: evitar que algo se escape, de forma simple, al precio más accesible. Ese es Gold.",
+      href: '/es/pricing/#plan-origin'
+    },
+    platinum: {
+      name: 'Platinum', price: '$7',
+      why: "Estás manejando más que solo lo tuyo y quieres empezar cada día ya adelantado. El resumen diario proactivo y la sincronización de agenda de Platinum están hechos justo para esa carga.",
+      href: '/es/pricing/#plan-supernova'
+    },
+    diamond: {
+      name: 'Diamond', price: '$17.5',
+      why: "Eres el punto por donde pasa todo y prefieres que quede resuelto. Diamond es el plan autónomo hecho para funcionar sin que tengas que tocarlo.",
+      href: '/es/pricing/#plan-bigbang'
+    }
+  };
+
+  var answers = {};
+  var step = 0;
+  var totalQuestions = 3;
+  var screens = document.querySelectorAll('.pf-screen');
+  var dots = document.querySelectorAll('.pf-progress__dot');
+  var titleEl = document.getElementById('pf-title');
+  var subtitleEl = document.getElementById('pf-subtitle');
+
+  var TITLES = [
+    ["Tres preguntas rápidas, una respuesta honesta", "Nada de trampas — solo lo necesario para llevarte al plan correcto."],
+    ["Ya casi", "Esta define cuánto necesita cargar Zoorzio por ti."],
+    ["Última pregunta", "Esta nos dice qué significa “ayudar” para ti."],
+    ["Danos un segundo", ""],
+    ["Esto es lo que encontramos", "Basado solo en lo que acabas de responder."]
+  ];
+
+  function showScreen(i){
+    screens.forEach(function(s){
+      s.classList.toggle('is-active', parseInt(s.getAttribute('data-screen'),10) === i);
+    });
+    dots.forEach(function(d){
+      var idx = parseInt(d.getAttribute('data-step'),10);
+      d.classList.toggle('is-done', idx < i || i === 4);
+      d.classList.toggle('is-active', idx === i);
+    });
+    titleEl.textContent = TITLES[i][0];
+    subtitleEl.textContent = TITLES[i][1];
+    subtitleEl.style.display = TITLES[i][1] ? 'block' : 'none';
+  }
+
+  document.querySelectorAll('.pf-options').forEach(function(group){
+    var qKey = group.getAttribute('data-question');
+    group.querySelectorAll('.pf-option').forEach(function(opt){
+      opt.addEventListener('click', function(){
+        group.querySelectorAll('.pf-option').forEach(function(o){ o.classList.remove('is-selected'); });
+        opt.classList.add('is-selected');
+        answers[qKey] = opt.getAttribute('data-value');
+        setTimeout(advance, 260);
+      });
+    });
+  });
+
+  function advance(){
+    if (step < totalQuestions - 1) {
+      step++;
+      showScreen(step);
+    } else {
+      step = 3;
+      showScreen(3);
+      runLoading();
+    }
+  }
+
+  function runLoading(){
+    var items = document.querySelectorAll('#pf-checklist .pf-checklist__item');
+    items.forEach(function(it){ it.classList.remove('is-done'); });
+    var delays = [400, 900, 1500];
+    delays.forEach(function(d, i){
+      setTimeout(function(){ items[i].classList.add('is-done'); }, d);
+    });
+    setTimeout(function(){
+      step = 4;
+      showScreen(4);
+      revealResult();
+    }, 2100);
+  }
+
+  function revealResult(){
+    var scores = { gold: 0, platinum: 0, diamond: 0 };
+    Object.keys(answers).forEach(function(k){ scores[answers[k]]++; });
+    var winner = 'gold';
+    var best = -1;
+    ['gold','platinum','diamond'].forEach(function(k){
+      if (scores[k] > best) { best = scores[k]; winner = k; }
+    });
+    var plan = PLAN_DATA[winner];
+    document.getElementById('pf-result-plan').textContent = plan.name;
+    document.getElementById('pf-result-why').textContent = plan.why;
+    document.getElementById('pf-result-price').textContent = plan.price;
+    var cta = document.getElementById('pf-result-cta');
+    cta.textContent = 'Ver plan ' + plan.name;
+    cta.href = plan.href;
+  }
+
+  document.getElementById('pf-restart').addEventListener('click', function(){
+    answers = {};
+    step = 0;
+    document.querySelectorAll('.pf-option.is-selected').forEach(function(o){ o.classList.remove('is-selected'); });
+    showScreen(0);
+  });
+
+  showScreen(0);
+})();
+</script>
+</body>
+</html>

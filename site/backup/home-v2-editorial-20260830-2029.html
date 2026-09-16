@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zoorzio — the memory that lives in your chats</title>
+<meta name="description" content="Zoorzio quietly keeps your reminders, notes and briefings inside the apps you already message in. A calmer memory, in plain words." />
+<link rel="icon" href="/assets-zoorzio/zoorzio-cat.webp" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+<style>
+/* ================= Zoorzio — editorial system ================= */
+:root{
+  --cream:#FBF6EF; --cream-2:#F5ECE1; --panel:#FFFFFF;
+  --ink:#241C38; --ink-2:#645A7A; --ink-3:#928AA6;
+  --line:rgba(36,28,56,.12); --line-2:rgba(36,28,56,.07);
+  --lavender:#AC84CC; --purple:#9283D9; --pink:#DC8CC5; --peach-pink:#F9979D;
+  --peach:#FCAD96; --blue:#7EA9E4; --cream-acc:#F5CAA2;
+  --accent:#8A5CC4;                 /* single confident accent (deepened purple) */
+  --grad:linear-gradient(103deg,#9283D9,#DC8CC5 55%,#F9979D);
+  --maxw:1180px;
+  --ease:cubic-bezier(.22,.61,.31,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:'Hanken Grotesk',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  color:var(--ink);background:var(--cream);line-height:1.62;font-size:17px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:500;line-height:1.02;letter-spacing:-.015em}
+.serif-i{font-style:italic;font-weight:400}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px}
+.mono{font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.lead{color:var(--ink-2)}
+
+/* soft single spotlight, not blobs */
+.bg-spot{position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(900px 520px at 78% -6%,rgba(220,140,197,.16),transparent 62%),
+  radial-gradient(760px 520px at -6% 8%,rgba(146,131,217,.12),transparent 60%)}
+
+/* ---------------- nav ---------------- */
+header{position:sticky;top:0;z-index:60;background:rgba(251,246,239,.72);backdrop-filter:blur(14px);
+  border-bottom:1px solid transparent;transition:border-color .3s,background .3s}
+header.stuck{border-color:var(--line-2);background:rgba(251,246,239,.9)}
+.nav{display:flex;align-items:center;height:74px;gap:40px}
+.logo{display:flex;align-items:center;gap:11px;font-family:'Fraunces';font-weight:600;font-size:1.4rem;letter-spacing:-.03em}
+.logo img{width:32px;height:32px}
+.nav-mid{display:flex;gap:34px;margin:0 auto;font-weight:500;font-size:.96rem;color:var(--ink-2)}
+.nav-mid a{transition:color .2s} .nav-mid a:hover{color:var(--ink)}
+.nav-end{display:flex;align-items:center;gap:22px}
+.nav-end .sign{font-weight:600;font-size:.96rem}
+.btn{font-family:inherit;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:9px;transition:transform .2s var(--ease),box-shadow .25s,background .25s,color .2s}
+.btn-primary{color:#fff;background:var(--ink);padding:12px 22px;border-radius:100px;font-size:.95rem}
+.btn-primary:hover{transform:translateY(-2px);background:#160f28}
+.btn-grad{background:var(--grad);color:#fff;padding:14px 26px;border-radius:100px;box-shadow:0 14px 30px -14px rgba(146,131,217,.9)}
+.btn-grad:hover{transform:translateY(-2px);box-shadow:0 20px 40px -14px rgba(220,140,197,.9)}
+.btn-line{border:1.5px solid var(--line);color:var(--ink);padding:13px 24px;border-radius:100px;background:transparent}
+.btn-line:hover{border-color:var(--ink);transform:translateY(-2px)}
+.arrow{transition:transform .25s var(--ease)}
+.btn:hover .arrow{transform:translate(3px,0)}
+
+/* ---------------- hero ---------------- */
+.hero{padding:76px 0 40px}
+.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
+.tagrow{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+.tag{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:100px;padding:6px 14px;font-size:.8rem;font-weight:600;color:var(--ink-2)}
+.tag .pip{width:7px;height:7px;border-radius:50%;background:var(--grad)}
+.hero h1{font-size:clamp(3rem,6.2vw,5.3rem);letter-spacing:-.03em;margin-bottom:26px}
+.hero h1 .u{background:linear-gradient(180deg,transparent 66%,rgba(249,151,157,.4) 0);padding:0 .05em}
+.hero .lead{font-size:1.22rem;max-width:38ch;margin-bottom:34px}
+.hero-cta{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.textlink{font-weight:600;display:inline-flex;align-items:center;gap:8px;border-bottom:1.5px solid var(--ink);padding-bottom:2px}
+.worksrow{margin-top:40px;padding-top:26px;border-top:1px solid var(--line-2)}
+.worksrow .mono{display:block;margin-bottom:14px}
+.works{display:flex;gap:28px;align-items:center;flex-wrap:wrap;color:var(--ink-2);font-weight:600;font-size:.9rem}
+.works span{display:inline-flex;align-items:center;gap:8px;opacity:.85}
+.works svg{width:17px;height:17px}
+
+/* hero scene — crafted, grounded */
+.scene{position:relative;height:520px}
+.scene .halo{position:absolute;width:420px;height:420px;border-radius:50%;top:40px;left:50%;transform:translateX(-50%);
+  background:radial-gradient(circle,rgba(220,140,197,.4),rgba(146,131,217,.18) 45%,transparent 70%);filter:blur(8px)}
+.scene .floor{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);width:280px;height:34px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(36,28,56,.22),transparent 70%);filter:blur(6px)}
+.scene .cat{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:250px;z-index:2;
+  filter:drop-shadow(0 30px 30px rgba(36,28,56,.28));animation:float 6s ease-in-out infinite}
+@keyframes float{50%{transform:translateX(-50%) translateY(-12px)}}
+.vig{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 16px;
+  box-shadow:0 26px 50px -30px rgba(36,28,56,.5);z-index:3}
+.vig .mono{margin-bottom:8px}
+.vig.reminder{top:26px;left:-6px;width:230px;animation:sway 7s ease-in-out infinite}
+.vig.chat{bottom:38px;right:-10px;width:250px;animation:sway 7s ease-in-out infinite;animation-delay:-3.5s}
+@keyframes sway{50%{transform:translateY(-9px)}}
+.rem-item{display:flex;align-items:center;gap:11px;padding:7px 0}
+.rem-item+.rem-item{border-top:1px solid var(--line-2)}
+.rem-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.rem-item .t{font-weight:600;font-size:.9rem;line-height:1.2}
+.rem-item .t small{display:block;color:var(--ink-3);font-weight:500;font-size:.74rem;letter-spacing:.02em}
+.rem-check{margin-left:auto;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);flex:none}
+.rem-check.on{background:var(--grad);border-color:transparent;position:relative}
+.rem-check.on::after{content:"";position:absolute;left:6px;top:2.5px;width:5px;height:9px;border:2px solid #fff;border-top:0;border-left:0;transform:rotate(42deg)}
+.b{padding:9px 13px;border-radius:14px;font-size:.85rem;font-weight:500;max-width:88%;line-height:1.4;margin-bottom:8px}
+.b.you{margin-left:auto;background:var(--ink);color:#fff;border-bottom-right-radius:4px}
+.b.z{background:var(--cream-2);border-bottom-left-radius:4px}
+
+/* ---------------- channel band ---------------- */
+.band{border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2);padding:22px 0;margin-top:36px;background:rgba(255,255,255,.4)}
+.band-in{display:flex;align-items:center;gap:40px;justify-content:center;flex-wrap:wrap}
+.band .mono{white-space:nowrap}
+.band .names{display:flex;gap:34px;flex-wrap:wrap;justify-content:center;font-weight:600;color:var(--ink-2);font-size:1.02rem}
+.band .names span{opacity:.72;transition:opacity .2s}.band .names span:hover{opacity:1}
+
+/* ---------------- section scaffolding ---------------- */
+.sec{padding:112px 0}
+.sec-eyebrow{display:flex;align-items:baseline;gap:14px;margin-bottom:30px}
+.sec-eyebrow .num{font-family:'Fraunces';font-size:1.1rem;color:var(--accent)}
+.sec-title{font-size:clamp(2.1rem,4.2vw,3.2rem);max-width:16ch;margin-bottom:18px}
+.sec-title .serif-i{color:var(--accent)}
+
+/* feature — editorial alternating rows */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;padding:56px 0;border-top:1px solid var(--line-2)}
+.frow:last-child{border-bottom:1px solid var(--line-2)}
+.frow .fnum{font-family:'Fraunces';font-size:.95rem;color:var(--accent);letter-spacing:.1em;margin-bottom:16px}
+.frow h3{font-size:1.9rem;margin-bottom:14px;letter-spacing:-.02em}
+.frow p{color:var(--ink-2);font-size:1.08rem;max-width:44ch}
+.frow .more{margin-top:20px;display:inline-flex;gap:8px;font-weight:600;color:var(--accent)}
+.frow.flip .ftext{order:2}
+.demo{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:22px;
+  box-shadow:0 30px 60px -40px rgba(36,28,56,.5)}
+.demo .cap{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.demo .dots{display:flex;gap:6px}.demo .dots i{width:9px;height:9px;border-radius:50%;background:var(--line);display:block}
+/* mock A: reminders */
+.mk-line{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line-2);border-radius:13px;margin-bottom:10px;background:var(--cream)}
+.mk-line .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none}
+.mk-line .ic svg{width:18px;height:18px;stroke:#fff}
+.mk-line .tx b{display:block;font-size:.94rem}.mk-line .tx small{color:var(--ink-3);font-size:.78rem}
+.mk-line .when{margin-left:auto;font-family:'JetBrains Mono';font-size:.72rem;color:var(--ink-3)}
+/* mock B: chat */
+.mk-chat{display:flex;flex-direction:column;gap:9px;padding:6px}
+/* mock C: briefing */
+.brief h4{font-family:'Fraunces';font-size:1.15rem;margin-bottom:4px}
+.brief .date{font-family:'JetBrains Mono';font-size:.7rem;color:var(--ink-3);margin-bottom:14px;text-transform:uppercase;letter-spacing:.14em}
+.brief .row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line-2);font-size:.92rem}
+.brief .row .bar{width:3px;align-self:stretch;border-radius:3px;flex:none}
+
+/* ---------------- steps ---------------- */
+.steps-sec{background:var(--ink);color:#fff;border-radius:34px;margin:0 20px;max-width:1240px;overflow:hidden;position:relative}
+.steps-in{max-width:1120px;margin:0 auto;padding:88px 40px}
+.steps-in .mono{color:var(--peach)}
+.steps-in .sec-title{color:#fff;max-width:20ch}.steps-in .sec-title .serif-i{color:var(--peach-pink)}
+.steps-in .lead{color:rgba(255,255,255,.7);max-width:52ch;margin-bottom:52px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.step{padding:32px 28px 32px 0;border-left:1px solid rgba(255,255,255,.16);padding-left:28px;position:relative}
+.step:first-child{border-left:none;padding-left:0}
+.step .sn{font-family:'Fraunces';font-size:2.6rem;color:transparent;-webkit-text-stroke:1.3px rgba(255,255,255,.5);margin-bottom:18px}
+.step h3{font-size:1.5rem;margin-bottom:10px}
+.step p{color:rgba(255,255,255,.72);font-size:1rem}
+.steps-glow{position:absolute;width:500px;height:500px;border-radius:50%;bottom:-260px;right:-120px;
+  background:radial-gradient(circle,rgba(220,140,197,.5),transparent 65%);filter:blur(30px)}
+
+/* ---------------- demo video ---------------- */
+.showcase{text-align:center}
+.vframe{max-width:960px;margin:44px auto 0;background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:14px;
+  box-shadow:0 50px 90px -50px rgba(36,28,56,.6)}
+.vframe .bar{display:flex;align-items:center;gap:7px;padding:6px 8px 14px}
+.vframe .bar i{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.vframe .screen{border-radius:15px;overflow:hidden;aspect-ratio:16/9;background:#161022}
+.vframe video{width:100%;height:100%;object-fit:cover}
+
+/* ---------------- pull quote ---------------- */
+.quote{max-width:920px;margin:0 auto;text-align:center}
+.quote .mark{font-family:'Fraunces';font-size:4rem;line-height:0;color:var(--pink);display:block;height:34px}
+.quote blockquote{font-family:'Fraunces';font-weight:400;font-size:clamp(1.7rem,3.4vw,2.6rem);line-height:1.25;letter-spacing:-.01em;margin:22px 0 26px}
+.quote blockquote em{color:var(--accent);font-weight:500}
+.quote .by{color:var(--ink-2);font-weight:600;font-size:.95rem}
+.quote .by small{color:var(--ink-3);font-weight:500}
+
+/* ---------------- final cta ---------------- */
+.final{position:relative;background:var(--grad);color:#fff;border-radius:34px;margin:0 20px;max-width:1240px;overflow:hidden}
+.final-in{max-width:1120px;margin:0 auto;padding:84px 40px;display:grid;grid-template-columns:1.3fr .7fr;gap:40px;align-items:center}
+.final h2{font-size:clamp(2.2rem,4.4vw,3.4rem);color:#fff;max-width:16ch;margin-bottom:18px}
+.final p{color:rgba(255,255,255,.9);font-size:1.12rem;max-width:44ch;margin-bottom:28px}
+.final .row{display:flex;gap:16px;flex-wrap:wrap}
+.final .btn-primary{background:#fff;color:var(--ink)}.final .btn-primary:hover{background:#fff;color:#000}
+.final .btn-line{border-color:rgba(255,255,255,.6);color:#fff}.final .btn-line:hover{border-color:#fff;background:rgba(255,255,255,.12)}
+.final .catwrap{position:relative;justify-self:center}
+.final .catwrap img{width:220px;filter:drop-shadow(0 30px 30px rgba(36,28,56,.4));animation:float 6s ease-in-out infinite}
+
+/* ---------------- footer ---------------- */
+footer{padding:72px 0 40px}
+.foot-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;padding-bottom:42px;border-bottom:1px solid var(--line-2)}
+.foot-brand .logo{margin-bottom:16px}
+.foot-brand p{color:var(--ink-2);max-width:32ch;font-size:.98rem}
+.fcol h4{font-family:'JetBrains Mono';font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:16px}
+.fcol a{display:block;margin-bottom:11px;color:var(--ink-2);font-weight:500;font-size:.96rem;transition:color .2s}
+.fcol a:hover{color:var(--ink)}
+.foot-bot{display:flex;justify-content:space-between;align-items:center;padding-top:26px;color:var(--ink-3);font-size:.86rem;flex-wrap:wrap;gap:14px}
+.socials{display:flex;gap:14px}.socials a{color:var(--ink-2);transition:color .2s,transform .2s}.socials a:hover{color:var(--ink);transform:translateY(-2px)}
+.socials svg{width:19px;height:19px}
+
+/* ---------------- reveal ---------------- */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.rv.in{opacity:1;transform:none}
+.d1{transition-delay:.09s}.d2{transition-delay:.18s}.d3{transition-delay:.27s}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
+
+/* ---------------- responsive ---------------- */
+@media(max-width:960px){
+  .hero-grid{grid-template-columns:1fr;gap:20px}
+  .scene{height:440px;margin-top:10px}
+  .frow{grid-template-columns:1fr;gap:32px}.frow.flip .ftext{order:0}
+  .steps{grid-template-columns:1fr}.step{border-left:none;border-top:1px solid rgba(255,255,255,.16);padding:26px 0}
+  .step:first-child{padding-top:0;border-top:none}
+  .final-in{grid-template-columns:1fr;text-align:center}.final h2,.final p{max-width:none}.final .row{justify-content:center}
+  .final .catwrap{order:-1}
+  .nav-mid{display:none}
+  .foot-top{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+  body{font-size:16px}.wrap{padding:0 20px}
+  .nav-end .sign{display:none}
+  .scene .cat{width:190px}.vig{transform:scale(.86)}.vig.reminder{left:-14px}.vig.chat{right:-14px}
+  .foot-top{grid-template-columns:1fr}
+  .steps-sec,.final,.steps-in,.final-in{margin-left:0;margin-right:0}
+}
+</style>
+</head>
+<body>
+<div class="bg-spot"></div>
+
+<header id="hdr">
+  <div class="wrap nav">
+    <a class="logo" href="/"><img src="/assets-zoorzio/zoorzio-cat.webp" alt="Zoorzio"/>Zoorzio</a>
+    <nav class="nav-mid">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#demo">Watch</a>
+      <a href="/pricing/">Pricing</a>
+    </nav>
+    <div class="nav-end">
+      <a class="sign" href="/login/">Sign in</a>
+      <a class="btn btn-primary" href="/login/">Get started</a>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <div class="tagrow rv"><span class="tag"><span class="pip"></span>Now in early access</span><span class="mono">memory, in plain words</span></div>
+      <h1 class="rv d1">The things you'd<br>otherwise <span class="serif-i">forget</span>,<br><span class="u">kept</span> where you chat.</h1>
+      <p class="lead rv d2">Zoorzio is a quiet second memory that lives inside WhatsApp, Telegram and email. Tell it something the way you'd text a friend — it hands it back at exactly the right moment.</p>
+      <div class="hero-cta rv d3">
+        <a class="btn btn-grad" href="/login/">Get started <span class="arrow">→</span></a>
+        <a class="textlink" href="#demo">Watch the 90-second tour</a>
+      </div>
+      <div class="worksrow rv d3">
+        <span class="mono">Works inside</span>
+        <div class="works">
+          <span><svg viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15l-1.4 5 5.1-1.3A10 10 0 1 0 12 2Z"/></svg>WhatsApp</span>
+          <span><svg viewBox="0 0 24 24" fill="#2AABEE"><path d="M22 3 2.5 10.5c-1 .4-1 1.4 0 1.7l4.9 1.5 1.9 5.9c.3.8 1 1 1.6.4l2.6-2.5 4.9 3.6c.7.5 1.5.2 1.7-.7L23 4.3c.2-1-.5-1.7-1-1.3Z"/></svg>Telegram</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="#F9979D" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>Email</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="#7EA9E4" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Web</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene rv d2" aria-hidden="true">
+      <span class="halo"></span>
+      <div class="vig reminder">
+        <span class="mono">Today</span>
+        <div class="rem-item"><span class="rem-dot" style="background:var(--peach-pink)"></span><span class="t">Call Mom<small>6:00 PM · nudge 15 min early</small></span><span class="rem-check on"></span></div>
+        <div class="rem-item"><span class="rem-dot" style="background:var(--blue)"></span><span class="t">Pay the electricity bill<small>before payday</small></span><span class="rem-check"></span></div>
+      </div>
+      <span class="floor"></span>
+      <img class="cat" src="/assets-zoorzio/zoorzio-cat.webp" alt="Zoorzio" />
+      <div class="vig chat">
+        <span class="mono">WhatsApp</span>
+        <div class="b you">save this idea for the launch deck 🎈</div>
+        <div class="b z">Filed under <b>Launch</b>. That's 4 notes now — want a recap?</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- channel band -->
+  <div class="band">
+    <div class="wrap band-in">
+      <span class="mono">Trusted where you already are</span>
+      <div class="names"><span>WhatsApp</span><span>Telegram</span><span>Email</span><span>Slack</span><span>Chrome</span><span>Calendar</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES (editorial rows) -->
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-eyebrow rv"><span class="num">01</span><span class="mono">What it does</span></div>
+    <h2 class="sec-title rv d1">A memory that works the way you already <span class="serif-i">think.</span></h2>
+
+    <div class="frow rv">
+      <div class="ftext">
+        <div class="fnum">01 — CAPTURE</div>
+        <h3>Say it once, in plain words</h3>
+        <p>No forms, no folders, no new app to learn. Send Zoorzio a message like you would a friend — "remind me Sunday", "save this", "add milk to the list" — and it understands.</p>
+        <a class="more" href="/login/">Try a message <span class="arrow">→</span></a>
+      </div>
+      <div class="demo">
+        <div class="cap"><span class="mono">Chat</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="mk-chat">
+          <div class="b you">remind me to renew the passport next month</div>
+          <div class="b z">Done — I'll remind you on the <b>1st</b>, and again a week before it matters.</div>
+          <div class="b you">also save the hotel link for Tokyo</div>
+          <div class="b z">Saved to <b>Tokyo</b> · 6 items. Say "recap Tokyo" anytime.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="frow flip rv">
+      <div class="ftext">
+        <div class="fnum">02 — TIMING</div>
+        <h3>Reminders that understand life</h3>
+        <p>Zoorzio reads intent, not just clocks. "Before the flight", "next payday", "when the rent is due" — it works out the moment and shows up right on cue, never a beat early.</p>
+        <a class="more" href="#how">See how <span class="arrow">→</span></a>
+      </div>
+      <div class="demo">
+        <div class="cap"><span class="mono">Today</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="mk-line"><span class="ic" style="background:linear-gradient(135deg,var(--purple),var(--pink))"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="tx"><b>Leave for the airport</b><small>2 hrs before boarding</small></span><span class="when">14:20</span></div>
+        <div class="mk-line"><span class="ic" style="background:linear-gradient(135deg,var(--peach-pink),var(--peach))"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M3 7h18v12H3z"/><path d="M3 10h18"/></svg></span><span class="tx"><b>Rent due</b><small>on the 1st, reminded on 28th</small></span><span class="when">3 days</span></div>
+        <div class="mk-line"><span class="ic" style="background:linear-gradient(135deg,var(--blue),var(--purple))"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></span><span class="tx"><b>Water the plants</b><small>every Tue &amp; Fri</small></span><span class="when">weekly</span></div>
+      </div>
+    </div>
+
+    <div class="frow rv">
+      <div class="ftext">
+        <div class="fnum">03 — MORNINGS</div>
+        <h3>A gentle briefing to start the day</h3>
+        <p>Wake to one calm message: what's on today, what's coming, and the notes worth remembering — written like a person, not a dashboard.</p>
+        <a class="more" href="/login/">Get your first one <span class="arrow">→</span></a>
+      </div>
+      <div class="demo brief">
+        <h4>Good morning ☕</h4>
+        <div class="date">Saturday · 30 August</div>
+        <div class="row"><span class="bar" style="background:var(--peach-pink)"></span><div><b>2 things today.</b> Call Mom at 6, and the electricity bill before payday.</div></div>
+        <div class="row"><span class="bar" style="background:var(--blue)"></span><div><b>Coming up.</b> Passport renewal opens on the 1st — I've got it.</div></div>
+        <div class="row"><span class="bar" style="background:var(--purple)"></span><div><b>From your notes.</b> That launch idea you saved last night is in the Launch folder.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS (dark, editorial) -->
+<section class="sec" id="how" style="padding-top:0">
+  <div class="steps-sec">
+    <div class="steps-in">
+      <div class="sec-eyebrow rv"><span class="num" style="color:var(--peach)">02</span><span class="mono">How it works</span></div>
+      <h2 class="sec-title rv d1">Three minutes to set up. <span class="serif-i">Years</span> of never forgetting.</h2>
+      <p class="lead rv d2">No onboarding maze. You start a chat, and the memory just begins.</p>
+      <div class="steps">
+        <div class="step rv"><div class="sn">01</div><h3>Add Zoorzio</h3><p>Say hi on WhatsApp, Telegram or by email. Nothing to download.</p></div>
+        <div class="step rv d1"><div class="sn">02</div><h3>Talk normally</h3><p>Send reminders, notes and lists in your own words. It handles the structure.</p></div>
+        <div class="step rv d2"><div class="sn">03</div><h3>Get it back</h3><p>The right thing arrives at the right moment. You just live your day.</p></div>
+      </div>
+    </div>
+    <span class="steps-glow"></span>
+  </div>
+</section>
+
+<!-- DEMO VIDEO -->
+<section class="sec showcase" id="demo" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-eyebrow rv" style="justify-content:center"><span class="num">03</span><span class="mono">See it in motion</span></div>
+    <h2 class="sec-title rv d1" style="margin:0 auto;text-align:center">Watch Zoorzio <span class="serif-i">remember</span> for you.</h2>
+    <div class="vframe rv d2">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="screen">
+        <video src="/_ext/cdn.memorae.ai/l3/newhomepage/homepage-video-english.mp4" poster="/assets-zoorzio/hero-video-poster.webp" autoplay muted loop playsinline></video>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUOTE -->
+<section class="sec">
+  <div class="wrap quote rv">
+    <span class="mark">“</span>
+    <blockquote>The idea I'd have lost by lunch is now <em>waiting for me</em> at exactly the moment I need it. It feels less like an app and more like a calmer version of my own head.</blockquote>
+    <div class="by">Early access note <small>· from the Zoorzio community</small></div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="sec" style="padding-top:0">
+  <div class="final">
+    <div class="final-in">
+      <div class="rv">
+        <h2>Give your memory the day off.</h2>
+        <p>Start free in under a minute. Zoorzio takes it from here — quietly, sweetly, and without ever losing the thread.</p>
+        <div class="row">
+          <a class="btn btn-primary" href="/login/">Get started free</a>
+          <a class="btn btn-line" href="/portal/">Explore the portal</a>
+        </div>
+      </div>
+      <div class="catwrap rv d1"><img src="/assets-zoorzio/zoorzio-cat.webp" alt="Zoorzio"/></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <a class="logo" href="/"><img src="/assets-zoorzio/zoorzio-cat.webp" alt="Zoorzio" style="width:30px;height:30px"/>Zoorzio</a>
+        <p>The memory that lives inside your chats. Reminders, notes and briefings — in plain words.</p>
+      </div>
+      <div class="fcol"><h4>Product</h4><a href="#features">Features</a><a href="#how">How it works</a><a href="#demo">Watch</a><a href="/pricing/">Pricing</a></div>
+      <div class="fcol"><h4>Company</h4><a href="/security/">Security</a><a href="/privacy-policy/">Privacy</a><a href="/cookies-settings/">Cookies</a><a href="/portal/">Portal</a></div>
+      <div class="fcol"><h4>Get started</h4><a href="/login/">Sign in</a><a href="/login/">Create account</a><a href="#how">Add on WhatsApp</a></div>
+    </div>
+    <div class="foot-bot">
+      <span>© 2026 Zoorzio — made with care.</span>
+      <div class="socials">
+        <a href="#" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h3l-7 8 8 12h-6l-5-7-5 7H3l8-9L3 2h6l4 6 5-6Z"/></svg></a>
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+        <a href="#" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.300-4.5-1.1-4.5-5a3.9 3.9 0 0 1 1-2.7c-.1-.3-.4-1.3.1-2.6 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.3.2 2.3.1 2.6.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.5 5 .4.3.7.9.7 1.8v2.6c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14,rootMargin:'0px 0px -6% 0px'});document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});})();
+(function(){var h=document.getElementById('hdr');addEventListener('scroll',function(){h.classList.toggle('stuck',scrollY>12);},{passive:true});})();
+</script>
+</body>
+</html>

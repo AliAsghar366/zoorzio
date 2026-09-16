@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Coffee with Zoorzio</title>
+<link rel="icon" href="assets/images/zoorzio-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="coffee.css" />
+</head>
+<body>
+
+  <div class="coffee">
+
+    <!-- Background -->
+    <div class="coffee__bg"></div>
+
+    <!-- Top controls -->
+    <header class="topbar">
+      <a href="index.html" class="glass-btn glass-btn--profile" aria-label="Back to Portal">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 5 8 12l7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+
+      <button class="glass-btn glass-btn--action" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="coffee__layout">
+
+      <!-- LEFT: Coffee with Zoorzio -->
+      <section class="coffee__left">
+        <p class="coffee__eyebrow">Take five</p>
+        <h1 class="coffee__title">Coffee with Zoorzio</h1>
+        <p class="coffee__subtitle">Take a moment, slow down, and talk through your day.</p>
+
+        <div class="coffee__scene">
+          <div class="coffee__mascot-wrap">
+            <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" class="coffee__mascot" />
+            <div class="coffee__cup" aria-hidden="true">
+              <div class="coffee__cup-steam">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="coffee__cup-body">
+                <div class="coffee__cup-liquid"></div>
+                <div class="coffee__cup-shine"></div>
+              </div>
+              <div class="coffee__cup-handle"></div>
+              <div class="coffee__cup-saucer"></div>
+            </div>
+            <img src="assets/images/zoorzio-icon.png" alt="" class="coffee__mini-mascot" aria-hidden="true" />
+          </div>
+        </div>
+
+        <button class="glass-btn glass-btn--pill coffee__change-drink">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 11a8 8 0 1 1-2.6-5.9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            <path d="M20 4v5h-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Change drink</span>
+        </button>
+      </section>
+
+      <!-- RIGHT: Conversation -->
+      <section class="coffee__right">
+        <div class="chat" id="chat">
+
+          <div class="chat__bubble chat__bubble--assistant">
+            Good morning! You have 3 tasks waiting today. Want me to help you prioritize them?
+          </div>
+
+          <div class="chat__bubble chat__bubble--user">
+            Show me what needs my attention first.
+          </div>
+
+          <div class="chat__bubble chat__bubble--assistant">
+            Your highest priority is the website launch. After that, you have two smaller tasks that can be handled this afternoon.
+          </div>
+
+          <div class="chat__bubble chat__bubble--user">
+            What do I have scheduled today?
+          </div>
+
+          <div class="chat__bubble chat__bubble--assistant">
+            You have a design review at 11:30 AM and a team check-in at 3:00 PM.
+          </div>
+
+          <div class="chat__bubble chat__bubble--user">
+            Can you remind me an hour before the review?
+          </div>
+
+          <div class="chat__bubble chat__bubble--assistant">
+            Done — I'll nudge you at 10:30 AM. Want me to pull the latest design files too?
+          </div>
+
+        </div>
+
+        <div class="ai-input coffee__chat-input">
+          <button class="ai-input__plus" aria-label="Add">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <input type="text" placeholder="Talk to Zoorzio..." aria-label="Talk to Zoorzio" />
+          <button class="ai-input__mic" aria-label="Voice input">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="ai-input__send" aria-label="Send">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 12h13.5M13 6l6.5 6-6.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav coffee__nav">
+      <a href="index.html" class="nav-item" data-label="Portal">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 10v8.2c0 .7.6 1.3 1.3 1.3H10v-5h4v5h2.7c.7 0 1.3-.6 1.3-1.3V10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Portal</span>
+      </a>
+      <a href="workspace.html" class="nav-item" data-label="Workspace">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3.5" y="6.5" width="17" height="11.5" rx="2" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M8.5 6.5V5a1.7 1.7 0 0 1 1.7-1.7h3.6A1.7 1.7 0 0 1 15.5 5v1.5" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <span>Workspace</span>
+      </a>
+      <button class="nav-item is-active" data-label="Coffee">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 9h11.5v5.3A4.7 4.7 0 0 1 11.8 19H9.7A4.7 4.7 0 0 1 5 14.3V9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M16.5 10.2H18a2.3 2.3 0 0 1 0 4.6h-1.5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M8 5.2c0 .8.9 1-.1 2S7 9 7 9M11.3 5.2c0 .8.9 1-.1 2S10.3 9 10.3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span>Coffee</span>
+      </button>
+      <a href="explore.html" class="nav-item" data-label="Explore">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M15 9 13.2 13.2 9 15l1.8-4.2L15 9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        </svg>
+        <span>Explore</span>
+      </a>
+      <button class="nav-item" data-label="More">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="5.5" cy="12" r="1.4" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
+          <circle cx="18.5" cy="12" r="1.4" fill="currentColor"/>
+        </svg>
+        <span>More</span>
+      </button>
+    </nav>
+
+  </div>
+
+<script src="coffee.js"></script>
+</body>
+</html>
