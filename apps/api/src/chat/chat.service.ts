@@ -563,7 +563,20 @@ export class ChatService {
       `✅ Done — "${event.title}" is on your calendar for ${new Date(event.startTime).toLocaleString()}.`,
     ];
     if (metadata.meetLink) lines.push(`Google Meet: ${metadata.meetLink}`);
-    if (attendees.length > 0) lines.push(`Invited: ${attendees.join(', ')}`);
+    // Only claim an invitation went out if the provider says it did. `attendees`
+    // is what was asked for; metadata.attendees is what the calendar accepted.
+    // A LOCAL calendar sends nothing, so reporting the requested list told users
+    // an invite had been sent when none had - wrong in the worst way, because it
+    // reads as success.
+    const invited: string[] = Array.isArray(metadata.attendees) ? metadata.attendees : [];
+    if (invited.length > 0) {
+      lines.push(`Invited: ${invited.join(', ')}`);
+    } else if (attendees.length > 0) {
+      lines.push(
+        `I couldn't send invitations or add a Meet link — that needs a connected ` +
+          `Google or Outlook calendar. Connect one and I'll invite ${attendees.join(', ')}.`,
+      );
+    }
 
     return lines.join('\n');
   }

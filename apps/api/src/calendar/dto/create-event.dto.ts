@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsDateString,
+  IsBoolean,
+  IsArray,
+  IsEmail,
+} from 'class-validator';
 
 export class CreateEventDto {
   @ApiProperty({ description: 'Calendar to add this event to' })
@@ -34,4 +42,27 @@ export class CreateEventDto {
   @IsBoolean()
   @IsOptional()
   allDay?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Email addresses to invite. Only delivered when the calendar is a connected Google or ' +
+      'Outlook account - a LOCAL calendar cannot send invitations.',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsEmail({}, { each: true })
+  attendees?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Add a Google Meet link (connected Google calendars only). Defaults to true.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  withMeet?: boolean;
+
+  @ApiPropertyOptional({ description: 'IANA timezone for the times, e.g. Europe/London' })
+  @IsOptional()
+  @IsString()
+  timezone?: string;
 }
