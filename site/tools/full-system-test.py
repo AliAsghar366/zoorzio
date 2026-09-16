@@ -169,8 +169,11 @@ def sweep(token, label):
     area("calendar")
     for p in ("/health", "/events", "/today", "/upcoming"):
         ck("GET /calendar%s" % p, "GET", "/calendar" + p, token=token)
-    evs = ck("GET /calendar/events (again)", "GET", "/calendar/events", token=token)
-    cal_id = evs[0].get("calendarId") if isinstance(evs, list) and evs else None
+    # Was: read a calendarId out of an existing event, which meant an account
+    # with a calendar but no events yet could never create its first one. That
+    # gap is why GET /calendar/calendars exists.
+    cals = ck("GET /calendar/calendars", "GET", "/calendar/calendars", token=token)
+    cal_id = cals[0].get("id") if isinstance(cals, list) and cals else None
     if cal_id:
         ev = ck("POST /calendar/events", "POST", "/calendar/events",
                 {"calendarId": cal_id, "title": "MX event",
@@ -179,7 +182,7 @@ def sweep(token, label):
         if ev and ev.get("id"):
             ck("DELETE /calendar/events/:id", "DELETE", "/calendar/events/" + ev["id"], token=token)
     else:
-        record("POST /calendar/events", SKIP, "no calendar on this account")
+        record("POST /calendar/events", FAIL, "no calendar returned by /calendar/calendars")
     ck("GET /calendar/google/authorize", "GET", "/calendar/google/authorize", token=token,
        soft=(400, 401, 404, 500, 503))
 

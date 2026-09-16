@@ -134,6 +134,13 @@ else:
 
 # ------------------------------------------------------------ 4. friends
 print("\n[4] Friend request pro -> starter, then accept")
+# Start from a known state: a friendship left behind by an earlier run makes
+# the request fail with "You are already friends", which reads as a bug and
+# is not one.
+_st, _p = call("GET", API + "/friends", None, tok["pro"])
+for _f in (unwrap(_p) or []):
+    if isinstance(_f, dict) and _f.get("friendshipId"):
+        call("DELETE", API + "/friends/" + _f["friendshipId"], None, tok["pro"])
 st, p = call("POST", API + "/friends/request", {"targetEmail": "starter@anchor.app"}, tok["pro"])
 d = unwrap(p) or {}
 check("friend request sent", st in (200, 201), "HTTP %s %s" % (st, d.get("id") or d.get("message", "")))
@@ -150,7 +157,7 @@ if pending:
     check("they now appear as friends", len(fr if isinstance(fr, list) else []) > 0,
           "%d friends" % len(fr if isinstance(fr, list) else []))
     if isinstance(fr, list) and fr:
-        call("DELETE", API + "/friends/" + fr[0].get("id", ""), None, tok["pro"])
+        call("DELETE", API + "/friends/" + fr[0].get("friendshipId", ""), None, tok["pro"])
 
 # ------------------------------------------------------------ 5. admin
 print("\n[5] Admin actions")
