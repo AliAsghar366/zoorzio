@@ -335,6 +335,44 @@ export class AuthService {
    * Blocked against other admins so one admin can never silently act as
    * another. Every use is audit-logged under the ACTING admin's id.
    */
+  /**
+   * Change the password of a signed-in user. Unlike resetPassword (which is
+   * reached from an emailed token), this proves ownership with the current
+   * password. Every session is dropped afterwards - a password change should
+   * not leave older sessions alive on other devices.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isCurrentValid = await argon2.verify(user.passwordHash, currentPassword);
+    if (!isCurrentValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    if (currentPassword === newPassword) {
+      throw new BadRequestException('New password must be different from the current one');
+    }
+
+    const passwordHash = await argon2.hash(newPassword, {
+      type: argon2.argon2id,
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 4,
+    });
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.session.deleteMany({ where: { userId } }),
+    ]);
+
+    await this.logAudit(userId, 'PASSWORD_CHANGED', 'auth', {});
+
+    return { success: true };
+  }
+
   async impersonate(adminUserId: string, targetUserId: string) {
     const targetUser = await this.prisma.user.findUnique({ where: { id: targetUserId } });
     if (!targetUser) {

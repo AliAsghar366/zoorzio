@@ -62,3 +62,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/* ---------------------------------------------------------------------------
+ * Backend wiring for the portal home.
+ * Greeting comes from the signed-in user; the ask box posts to /chat and
+ * hands the conversation over to the Coffee page.
+ * ------------------------------------------------------------------------- */
+document.addEventListener('DOMContentLoaded', function () {
+  if (!window.Portal || !window.Portal.authed) return;
+  var P = window.Portal;
+
+  var greetingEl = document.getElementById('heroGreeting');
+  if (greetingEl) {
+    var cached = P.api.getUser();
+    if (cached) {
+      greetingEl.textContent = P.greetingFor(new Date()) + ', ' + P.firstName(cached);
+    }
+    P.load('/auth/me', function (user) {
+      if (!user) return;
+      greetingEl.textContent = P.greetingFor(new Date()) + ', ' + P.firstName(user);
+    }, 'Could not load your profile').catch(function () {});
+  }
+
+  var ask = document.getElementById('heroAsk');
+  if (ask) {
+    ask.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var text = ask.value.trim();
+      if (!text) return;
+      e.preventDefault();
+      // Coffee is the conversation surface - send it there and let that page
+      // own the exchange, rather than half-rendering a reply on the home hero.
+      try { sessionStorage.setItem('zoorzio_pending_message', text); } catch (err) {}
+      window.location.href = 'coffee.html';
+    });
+  }
+});

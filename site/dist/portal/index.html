@@ -38,7 +38,7 @@
         <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" />
       </div>
 
-      <h1 class="hero__title">Good evening, Zeesha</h1>
+      <h1 class="hero__title" id="heroGreeting">Good evening, Zeesha</h1>
       <p class="hero__subtitle">Where do you want to go?</p>
 
       <!-- Main AI input -->
@@ -48,7 +48,7 @@
             <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
           </svg>
         </button>
-        <input type="text" placeholder="What can I help you with?" aria-label="Ask Zoorzio" />
+        <input type="text" id="heroAsk" placeholder="What can I help you with?" aria-label="Ask Zoorzio" />
         <button class="ai-input__mic" aria-label="Voice input">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="1.6"/>
@@ -194,6 +194,11 @@
 
   </div>
 
+  <!-- Backend connection. ZOORZIO_API_URL is substituted at deploy time by
+       site/tools/inject-env.js from the ZOORZIO_API_URL env var. -->
+  <script>window.ZOORZIO_API_URL = 'https://REPLACE-WITH-RAILWAY-API-URL.up.railway.app/api';</script>
+  <script src="zoorzio-api.js"></script>
+  <script src="portal-session.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

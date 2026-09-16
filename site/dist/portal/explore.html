@@ -187,6 +187,12 @@
     <img src="assets/images/zoorzio-icon.png" alt="" class="ex-floating-mascot" />
   </div>
 
+  <!-- Backend connection. ZOORZIO_API_URL is substituted at deploy time by
+       site/tools/inject-env.js from the ZOORZIO_API_URL env var. -->
+  <script>window.ZOORZIO_API_URL = 'https://REPLACE-WITH-RAILWAY-API-URL.up.railway.app/api';</script>
+  <script src="zoorzio-api.js"></script>
+  <script src="portal-session.js"></script>
 <script src="explore.js"></script>
+  <script src="explore-data.js"></script>
 </body>
 </html>

@@ -27,3 +27,8 @@ Thumbs.db
 
 # Prisma migrations are source, not build output - keep them tracked.
 !packages/database/prisma/migrations/**/*.sql
+
+# Python virtualenv + bytecode (apps/ai)
+.venv/
+__pycache__/
+*.pyc

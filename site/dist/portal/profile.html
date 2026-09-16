@@ -36,7 +36,7 @@
           </span>
           <span class="pf-card__head-text">
             <strong>Account Information</strong>
-            <em>Member since August 20, 2026</em>
+            <em id="memberSince">Member since August 20, 2026</em>
           </span>
           <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" class="pf-card__mascot" />
         </header>
@@ -112,8 +112,8 @@
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3.5c1.2 2.6 3 4.4 5.6 5.6-2.6 1.2-4.4 3-5.6 5.6-1.2-2.6-3-4.4-5.6-5.6 2.6-1.2 4.4-3 5.6-5.6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
           </span>
           <span class="pf-plan__text">
-            <strong>Zoorzio Plus</strong>
-            <em>Monthly plan</em>
+            <strong id="planName">Zoorzio Plus</strong>
+            <em id="planInterval">Monthly plan</em>
           </span>
           <span class="pf-plan__badge pf-plan__badge--active">Active</span>
         </div>
@@ -123,7 +123,7 @@
           <button class="pf-btn pf-btn--outline">Manage subscription</button>
         </div>
 
-        <p class="pf-billing">Next billing date: September 27, 2026</p>
+        <p class="pf-billing" id="billingDate">Next billing date: September 27, 2026</p>
 
         <div class="pf-help">
           <img src="assets/images/zoorzio-icon.png" alt="Zoorzio mascot" />
@@ -165,6 +165,11 @@
     <img src="assets/images/zoorzio-icon.png" alt="" class="pf-floating-mascot" />
   </div>
 
+  <!-- Backend connection. ZOORZIO_API_URL is substituted at deploy time by
+       site/tools/inject-env.js from the ZOORZIO_API_URL env var. -->
+  <script>window.ZOORZIO_API_URL = 'https://REPLACE-WITH-RAILWAY-API-URL.up.railway.app/api';</script>
+  <script src="zoorzio-api.js"></script>
+  <script src="portal-session.js"></script>
 <script src="profile.js"></script>
 </body>
 </html>
