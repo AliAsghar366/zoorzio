@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Request } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { SendChatMessageDto } from './dto/chat.dto';
@@ -10,6 +10,10 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Post()
+  // Sending a message is not creating a resource, and the documented contract
+  // below says 200 - without this, NestJS returns 201 and the Swagger response
+  // codes are a lie. Same reason auth/login pins HttpCode.
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Send a message to Zoorzio's assistant and get a reply" })
   @ApiResponse({ status: 200, description: 'Assistant reply' })
   async send(@Request() req: any, @Body() dto: SendChatMessageDto) {
