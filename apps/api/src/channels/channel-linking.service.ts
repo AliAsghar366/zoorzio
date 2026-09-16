@@ -38,8 +38,27 @@ export class ChannelLinkingService {
     private readonly channelCredentials: ChannelCredentialsService,
   ) {}
 
-  isWhatsAppLinkingConfigured(): boolean {
-    return !!this.config.get('WHATSAPP_BUSINESS_PHONE_NUMBER');
+  /**
+   * The number users are told to message. Once the QR-linked session is up we
+   * already know which number answered, so scanning is enough on its own -
+   * having to restate it in WHATSAPP_BUSINESS_PHONE_NUMBER (and redeploy for
+   * it to apply) was a config step that earned nothing. The env var still wins
+   * when set, for the Cloud API path where no QR session exists.
+   */
+  private async resolveBusinessNumber(): Promise<string | null> {
+    const fromEnv = this.config.get<string>('WHATSAPP_BUSINESS_PHONE_NUMBER');
+    if (fromEnv) return fromEnv;
+
+    const session = await this.prisma.whatsAppUnofficialSession.findUnique({
+      where: { id: 'default' },
+    });
+    return session?.status === 'CONNECTED' && session.connectedNumber
+      ? session.connectedNumber
+      : null;
+  }
+
+  async isWhatsAppLinkingConfigured(): Promise<boolean> {
+    return !!(await this.resolveBusinessNumber());
   }
 
   isTelegramLinkingConfigured(): boolean {
@@ -93,7 +112,7 @@ export class ChannelLinkingService {
   ): Promise<{ code: string; waLink: string | null; configured: boolean }> {
     const code = await this.generateCode(userId, ChannelType.WHATSAPP);
 
-    const businessNumber = this.config.get<string>('WHATSAPP_BUSINESS_PHONE_NUMBER');
+    const businessNumber = await this.resolveBusinessNumber();
     const configured = !!businessNumber;
     const waLink = configured
       ? `https://wa.me/${businessNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`LINK ${code}`)}`
@@ -101,7 +120,8 @@ export class ChannelLinkingService {
 
     if (!configured) {
       this.logger.warn(
-        `WHATSAPP_BUSINESS_PHONE_NUMBER not configured - link code for user ${userId}: LINK ${code}`,
+        `No WhatsApp number available yet (nothing linked by QR and ` +
+          `WHATSAPP_BUSINESS_PHONE_NUMBER unset) - link code for user ${userId}: LINK ${code}`,
       );
     }
 
