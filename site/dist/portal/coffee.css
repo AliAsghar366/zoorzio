@@ -472,3 +472,29 @@
   .chat__bubble { max-width: 88%; font-size: 13.5px; padding: 12px 14px; }
   .coffee__right { padding: 16px; border-radius: 26px; }
 }
+
+/* ---- Keep the message box on screen -------------------------------------
+   Below 980px the page scrolls as a whole and the input sat at the very end
+   of it, under the hero, the coffee cup and the sample bubbles. On a phone it
+   landed around y=920 on an 844px screen - off the bottom, with the nav bar
+   floating over the content above it - so there was simply no visible way to
+   type. Pin it above the nav instead, and pad the page so the last message
+   is never hidden behind the two of them. */
+@media (max-width: 980px) {
+  .coffee__chat-input {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    width: calc(100% - 32px);
+    max-width: 560px;
+    margin-top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 10px 28px rgba(74, 58, 99, 0.22);
+  }
+
+  .coffee__layout {
+    padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+  }
+}

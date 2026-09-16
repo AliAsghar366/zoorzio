@@ -18,8 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // The assistant needs the whole exchange each time, so keep it here. The
-  // greeting bubbles already in the markup are scene-setting, not history.
+  // The assistant needs the whole exchange each time, so keep it here.
   const history = [];
   let busy = false;
 
@@ -29,7 +28,27 @@ document.addEventListener('DOMContentLoaded', () => {
     el.textContent = text;
     chat.appendChild(el);
     chat.scrollTop = chat.scrollHeight;
+    // Below 980px the whole page scrolls rather than #chat, so the newest
+    // message would otherwise land behind the pinned input.
+    if (window.matchMedia('(max-width: 980px)').matches) {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+    }
     return el;
+  }
+
+  // The page used to open on seven hardcoded messages - a design review at
+  // 11:30, a website launch, and "Done - I'll nudge you at 10:30 AM" - none of
+  // which were real. The last one read as a reminder having been set. Open on
+  // an honest greeting instead, using the signed-in user's name.
+  if (chat) {
+    const user = P && P.api && P.api.getUser ? P.api.getUser() : null;
+    const first = user && P.firstName ? P.firstName(user) : '';
+    bubble(
+      'assistant',
+      (first ? 'Hi ' + first + '! ' : 'Hi! ') +
+        'Ask me about your tasks, reminders, lists or calendar - or tell me ' +
+        'something to remember. Try "what do I have today?"'
+    );
   }
 
   function sendMessage(preset) {
