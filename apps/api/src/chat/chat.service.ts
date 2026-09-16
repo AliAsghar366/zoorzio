@@ -23,7 +23,10 @@ import { ToolExecutionService } from './tool-execution.service';
 import { UsersService } from '../users/users.service';
 import { MemoryType, ChannelType } from '@anchor/database';
 import { ChatMessageDto } from './dto/chat.dto';
-import { TOOLS } from './tools';
+import { TOOLS, allowNullOnOptionalParams } from './tools';
+
+// Computed once: optional params also accept null (see the helper).
+const TOOL_SCHEMAS = allowNullOnOptionalParams(TOOLS);
 
 /** How the conversation's own channel shows a yes/no question as tappable buttons. */
 export interface ButtonPrompter {
@@ -99,7 +102,7 @@ export class ChatService {
       messages,
       context,
       userName,
-      TOOLS as unknown as Record<string, unknown>[],
+      TOOL_SCHEMAS as unknown as Record<string, unknown>[],
     );
 
     if (toolCalls && toolCalls.length > 0) {
@@ -965,12 +968,34 @@ export class ChatService {
   }
 
   private async buildContext(userId: string, query: string): Promise<string> {
-    const [memories, dueToday] = await Promise.all([
+    const [memories, dueToday, user] = await Promise.all([
       query ? this.searchService.search(userId, query, 5) : Promise.resolve([]),
       this.tasksService.getTasksDueToday(userId),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
     ]);
 
     const parts: string[] = [];
+
+    // The model was never told what "now" is, so every relative time was a
+    // guess. "remind me to take my tablets in 4 minutes" was scheduled six
+    // hours out. Absolute dates happened to work, which hid it.
+    //
+    // Timezone matters as much as the clock: a reminder is meant in the user's
+    // local time, and storing 3pm UTC for someone in Karachi is five hours wrong.
+    const timezone = user?.timezone || 'UTC';
+    const now = new Date();
+    parts.push(
+      `Current date and time: ${now.toLocaleString('en-GB', {
+        timeZone: timezone,
+        dateStyle: 'full',
+        timeStyle: 'short',
+      })} (${timezone}). In ISO 8601 that instant is ${now.toISOString()}.
+` +
+        `The user's timezone is ${timezone}. Any time they mention is local to them ` +
+        `unless they say otherwise. Work out relative times ("in 10 minutes", ` +
+        `"tonight", "tomorrow morning", "next Monday") from the moment above, and ` +
+        `pass tool arguments as ISO 8601 including the correct offset for ${timezone}.`,
+    );
     if (memories.length > 0) {
       parts.push(
         'Relevant memories:\n' + memories.map((m: any) => `- ${m.summary || m.content}`).join('\n'),

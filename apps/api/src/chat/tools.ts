@@ -633,3 +633,41 @@ export const TOOLS = [
     },
   },
 ] as const;
+
+/**
+ * Providers validate the model's tool call against these schemas before we ever
+ * see it. Models routinely send `null` for an optional argument they have
+ * decided not to use - "no recurrence on this reminder" - and a schema saying
+ * `type: 'string'` makes that a hard rejection, failing the whole turn. The
+ * user then gets "I'm having trouble responding right now" instead of their
+ * reminder.
+ *
+ * Observed on Groq: create_reminder with recurrence: null returned
+ *   "parameters for tool create_reminder did not match schema:
+ *    [`/recurrence`: expected string, but got null]"
+ *
+ * So every property that is not in `required` is widened to also accept null.
+ * Optional already means "may be absent"; this makes it mean "may be absent or
+ * explicitly empty", which is what the models actually do.
+ */
+export function allowNullOnOptionalParams<T>(tools: T): T {
+  const clone = JSON.parse(JSON.stringify(tools));
+  for (const tool of clone as any[]) {
+    const params = tool?.function?.parameters;
+    if (!params?.properties) continue;
+    const required: string[] = Array.isArray(params.required) ? params.required : [];
+    for (const [name, prop] of Object.entries<any>(params.properties)) {
+      if (required.includes(name)) continue;
+      if (typeof prop?.type === 'string') {
+        prop.type = [prop.type, 'null'];
+      }
+      // An enum is validated separately from the type, so widening the type
+      // alone still rejects null with "value must be one of ...". Both have to
+      // allow it.
+      if (Array.isArray(prop?.enum) && !prop.enum.includes(null)) {
+        prop.enum = [...prop.enum, null];
+      }
+    }
+  }
+  return clone as T;
+}

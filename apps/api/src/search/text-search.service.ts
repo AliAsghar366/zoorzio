@@ -9,7 +9,11 @@ export class TextSearchService {
 
   async search(userId: string, query: string, limit: number = 10): Promise<any[]> {
     try {
-      // Use PostgreSQL full-text search
+      // Use PostgreSQL full-text search.
+      // Column names are camelCase in the database, so they must be quoted -
+      // unquoted user_id/is_archived made every search throw 42703, which the
+      // catch below swallowed into an empty result. Silent, and it looked like
+      // 'no matches' rather than a failure.
       const results = await this.prisma.$queryRaw<any[]>`
         SELECT 
           id,
@@ -23,8 +27,8 @@ export class TextSearchService {
             plainto_tsquery('english', ${query})
           ) as rank
         FROM memories
-        WHERE user_id = ${userId}
-          AND is_archived = false
+        WHERE "userId" = ${userId}
+          AND "isArchived" = false
           AND to_tsvector('english', content || ' ' || COALESCE(summary, '')) @@ plainto_tsquery('english', ${query})
         ORDER BY rank DESC
         LIMIT ${limit}
