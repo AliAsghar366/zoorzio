@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Link Telegram · Zoorzio Admin</title>
+  <link rel="icon" href="/portal/assets/images/zoorzio-icon.png" />
+  <link href="/_ext/fonts.googleapis.com/poppins.css" rel="stylesheet" />
+  <style>
+    :root { --glass: rgba(255,255,255,0.14); --line: rgba(255,255,255,0.22); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; color: #fff;
+      background: #2a1c3d url('/portal/assets/images/candy-bar-bg.png') center/cover no-repeat fixed;
+      position: relative;
+    }
+    body::before {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(160deg, rgba(42,28,61,0.4), rgba(90,60,130,0.55));
+    }
+    .card {
+      position: relative; width: 100%; max-width: 460px;
+      background: var(--glass); border: 1px solid var(--line); border-radius: 24px;
+      padding: 32px 28px; box-shadow: 0 20px 60px rgba(20,12,35,0.45);
+      backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); text-align: center;
+    }
+    h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 4px; }
+    .sub { font-size: 0.85rem; opacity: 0.82; margin-bottom: 20px; font-weight: 300; line-height: 1.5; }
+    label { display: block; text-align: left; font-size: 0.75rem; font-weight: 500; margin: 0 0 6px 4px; opacity: 0.9; }
+    .field {
+      width: 100%; background: rgba(255,255,255,0.12); border: 1px solid var(--line);
+      border-radius: 12px; padding: 12px 14px; color: #fff; font-size: 0.92rem;
+      font-family: inherit; margin-bottom: 14px; outline: none;
+    }
+    .field::placeholder { color: rgba(255,255,255,0.5); }
+    .btn {
+      width: 100%; border: none; border-radius: 12px; padding: 13px; font-family: inherit;
+      font-size: 0.95rem; font-weight: 600; color: #3a2555;
+      background: linear-gradient(135deg, #ffffff, #f3e9ff); cursor: pointer;
+      box-shadow: 0 8px 22px rgba(20,12,35,0.3);
+    }
+    .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+    .btn--ghost {
+      background: transparent; color: #fff; border: 1px solid var(--line);
+      box-shadow: none; margin-top: 10px; font-weight: 500;
+    }
+    .status {
+      display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 500;
+      padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,0.12);
+      border: 1px solid var(--line); margin-bottom: 16px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #bbb; }
+    .dot--active { background: #6bd98f; }
+    .dot--pending { background: #f5c26b; }
+    .dot--invalid { background: #f08a8a; }
+    .steps { text-align: left; font-size: 0.8rem; line-height: 1.7; opacity: 0.9; margin: 2px 0 16px; padding-left: 18px; }
+    .steps code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem;
+      background: rgba(0,0,0,0.25); padding: 1px 6px; border-radius: 5px;
+    }
+    .msg { font-size: 0.8rem; line-height: 1.5; margin-top: 12px; padding: 10px 12px; border-radius: 10px; display: none; text-align: left; }
+    .msg--error { display: block; background: rgba(150,40,60,0.35); border: 1px solid rgba(240,138,138,0.4); }
+    .msg--ok { display: block; background: rgba(40,110,70,0.32); border: 1px solid rgba(107,217,143,0.4); }
+    .note { font-size: 0.68rem; line-height: 1.55; opacity: 0.6; margin-top: 16px; font-weight: 300; text-align: left; }
+    .hidden { display: none !important; }
+    .back { position: absolute; top: 20px; left: 22px; color: #fff; text-decoration: none; font-size: 0.82rem; opacity: 0.85; z-index: 2; }
+  </style>
+</head>
+<body>
+  <a class="back" href="/portal/">← Portal</a>
+
+  <!-- ZOORZIO_API_URL is substituted at deploy time by site/tools/inject-env.js -->
+  <script>window.ZOORZIO_API_URL = 'https://REPLACE-WITH-RAILWAY-API-URL.up.railway.app/api';</script>
+  <script src="/portal/zoorzio-api.js"></script>
+
+  <main class="card">
+    <h1>Link Telegram</h1>
+    <p class="sub">Telegram connects with a bot token, not a QR code.<br />Saving the token registers the webhook automatically.</p>
+
+    <section id="authStep">
+      <label for="email">Admin email</label>
+      <input class="field" id="email" type="email" placeholder="admin@example.com" autocomplete="username" />
+      <label for="pw">Password</label>
+      <input class="field" id="pw" type="password" placeholder="••••••••" autocomplete="current-password" />
+      <button class="btn" id="signInBtn">Sign in</button>
+    </section>
+
+    <section id="connectStep" class="hidden">
+      <div class="status">
+        <span class="dot" id="dot"></span>
+        <span id="statusText">Checking…</span>
+      </div>
+
+      <ol class="steps">
+        <li>In Telegram, message <code>@BotFather</code>.</li>
+        <li>Send <code>/newbot</code> and follow the prompts.</li>
+        <li>Copy the token it gives you and paste it below.</li>
+      </ol>
+
+      <label for="token">Bot token</label>
+      <input class="field" id="token" type="password" placeholder="123456789:AAExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+      <button class="btn" id="saveBtn">Save &amp; connect</button>
+      <button class="btn btn--ghost" id="testBtn">Test connection</button>
+      <button class="btn btn--ghost hidden" id="removeBtn">Disconnect</button>
+      <button class="btn btn--ghost" id="signOutBtn">Sign out</button>
+    </section>
+
+    <p class="msg" id="msg"></p>
+    <p class="note">
+      The token is encrypted before it is stored and never returned again. Saving it registers
+      the webhook straight away, so there is no second step — if the server has no public
+      API_URL configured, the status will say so rather than looking connected while receiving
+      nothing.
+    </p>
+  </main>
+
+  <script>
+    (function () {
+      var API = window.ZoorzioAPI.configure(window.ZOORZIO_API_URL || '');
+
+      var authStep = document.getElementById('authStep');
+      var connectStep = document.getElementById('connectStep');
+      var msg = document.getElementById('msg');
+      var dot = document.getElementById('dot');
+      var statusText = document.getElementById('statusText');
+      var removeBtn = document.getElementById('removeBtn');
+
+      function say(text, kind) {
+        msg.textContent = text || '';
+        msg.className = 'msg' + (text ? ' msg--' + (kind || 'ok') : '');
+      }
+
+      function showConnect() {
+        authStep.classList.add('hidden');
+        connectStep.classList.remove('hidden');
+        refresh();
+      }
+
+      function render(cred, health) {
+        var status = cred && cred.status;
+        dot.className = 'dot';
+        if (status === 'ACTIVE') {
+          dot.classList.add('dot--active');
+          statusText.textContent = 'Connected' + (cred.label ? ' · ' + cred.label : '');
+          removeBtn.classList.remove('hidden');
+        } else if (status === 'INVALID') {
+          dot.classList.add('dot--invalid');
+          statusText.textContent = 'Token rejected';
+          removeBtn.classList.remove('hidden');
+        } else if (status === 'PENDING') {
+          dot.classList.add('dot--pending');
+          statusText.textContent = 'Saved, not verified yet';
+          removeBtn.classList.remove('hidden');
+        } else {
+          statusText.textContent = health === 'not configured'
+            ? 'No bot connected'
+            : 'Shared bot: ' + (health || 'unknown');
+          removeBtn.classList.add('hidden');
+        }
+        if (cred && cred.lastError) say(cred.lastError, 'error');
+      }
+
+      function refresh() {
+        Promise.all([
+          API.request('/channels/credentials').catch(function () { return []; }),
+          API.request('/channels/health').catch(function () { return {}; }),
+        ]).then(function (res) {
+          var creds = Array.isArray(res[0]) ? res[0] : [];
+          var tg = null;
+          for (var i = 0; i < creds.length; i++) {
+            if (String(creds[i].type).toUpperCase() === 'TELEGRAM') { tg = creds[i]; break; }
+          }
+          render(tg, (res[1] || {}).telegram);
+        }).catch(function (err) {
+          if (err.status === 401) {
+            API.clearSession();
+            connectStep.classList.add('hidden');
+            authStep.classList.remove('hidden');
+            say('Session expired — sign in again.', 'error');
+            return;
+          }
+          say(err.message, 'error');
+        });
+      }
+
+      document.getElementById('signInBtn').addEventListener('click', function () {
+        var btn = this;
+        say('');
+        if (!API.isConfigured()) { say('This deployment has no API URL configured yet.', 'error'); return; }
+        btn.disabled = true; btn.textContent = 'Signing in…';
+        API.login(document.getElementById('email').value.trim(), document.getElementById('pw').value)
+          .then(showConnect)
+          .catch(function (err) { say(err.message, 'error'); })
+          .finally(function () { btn.disabled = false; btn.textContent = 'Sign in'; });
+      });
+
+      document.getElementById('saveBtn').addEventListener('click', function () {
+        var btn = this;
+        var token = document.getElementById('token').value.trim();
+        say('');
+        if (token.length < 10) { say('That does not look like a bot token.', 'error'); return; }
+        btn.disabled = true; btn.textContent = 'Connecting…';
+        API.request('/channels/telegram/credential', { method: 'POST', body: { token: token } })
+          .then(function (cred) {
+            document.getElementById('token').value = '';
+            if (cred && cred.status === 'ACTIVE') say('Connected — the webhook is registered.', 'ok');
+            else if (cred && cred.lastError) say(cred.lastError, 'error');
+            else say('Saved. Use “Test connection” to confirm it works.', 'ok');
+            refresh();
+          })
+          .catch(function (err) { say(err.message, 'error'); })
+          .finally(function () { btn.disabled = false; btn.textContent = 'Save & connect'; });
+      });
+
+      document.getElementById('testBtn').addEventListener('click', function () {
+        var btn = this;
+        say('');
+        btn.disabled = true; btn.textContent = 'Testing…';
+        API.request('/channels/telegram/credential/test', { method: 'POST', body: {} })
+          .then(function (r) {
+            var ok = r && (r.ok === true || r.success === true || r.status === 'ACTIVE');
+            say(ok ? 'Telegram accepted the token.' : ((r && (r.message || r.error)) || 'Test failed.'),
+                ok ? 'ok' : 'error');
+            refresh();
+          })
+          .catch(function (err) { say(err.message, 'error'); })
+          .finally(function () { btn.disabled = false; btn.textContent = 'Test connection'; });
+      });
+
+      removeBtn.addEventListener('click', function () {
+        if (!window.confirm('Disconnect this Telegram bot?')) return;
+        say('');
+        API.request('/channels/telegram/credential', { method: 'DELETE' })
+          .then(function () { say('Disconnected.', 'ok'); refresh(); })
+          .catch(function (err) { say(err.message, 'error'); });
+      });
+
+      document.getElementById('signOutBtn').addEventListener('click', function () {
+        API.clearSession();
+        connectStep.classList.add('hidden');
+        authStep.classList.remove('hidden');
+        say('');
+      });
+
+      if (API.getToken()) showConnect();
+    })();
+  </script>
+</body>
+</html>
