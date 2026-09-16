@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import httpx
@@ -10,6 +11,8 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 
 load_dotenv()
+
+logger = logging.getLogger("zoorzio.ai")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
@@ -69,6 +72,38 @@ def require_client() -> AsyncOpenAI:
             ),
         )
     return client
+
+
+def chat_providers() -> list[tuple[AsyncOpenAI, str]]:
+    """Every configured chat provider, in preference order.
+
+    resolve_chat_client_and_model() picks the first one and never reconsiders,
+    so a provider that is configured but failing takes the whole service down
+    with it - a Groq daily-token limit became a total outage even when another
+    key was present. Callers walk this list instead and move on to the next
+    provider when one returns a retryable error.
+    """
+    out: list[tuple[AsyncOpenAI, str]] = []
+    if groq_client is not None:
+        out.append((groq_client, GROQ_CHAT_MODEL))
+    if grok_client is not None:
+        out.append((grok_client, GROK_CHAT_MODEL))
+    if client is not None:
+        out.append((client, CHAT_MODEL))
+    return out
+
+
+def is_retryable_provider_error(error: Exception) -> bool:
+    """Rate limits, overload and transport faults are worth trying elsewhere.
+    A 400 (a bad request of ours, e.g. a malformed tool schema) is not - the
+    next provider would reject it identically."""
+    status = getattr(error, "status_code", None) or getattr(error, "status", None)
+    if status is None:
+        response = getattr(error, "response", None)
+        status = getattr(response, "status_code", None)
+    if isinstance(status, int):
+        return status == 408 or status == 409 or status == 429 or status >= 500
+    return isinstance(error, (ConnectionError, TimeoutError))
 
 
 def resolve_chat_client_and_model() -> tuple[AsyncOpenAI, str]:
@@ -525,41 +560,59 @@ ZOORZIO_SYSTEM_PROMPT = (
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    ai, model_name = resolve_chat_client_and_model()
+    providers = chat_providers()
+    if not providers:
+        raise HTTPException(
+            status_code=503,
+            detail="None of GROQ_API_KEY, XAI_API_KEY or OPENAI_API_KEY is configured on the AI service",
+        )
     system_prompt = ZOORZIO_SYSTEM_PROMPT
     if request.user_name:
         system_prompt += f"\n\nThe user you're talking to is named {request.user_name}. Greet them by name when it feels natural."
     if request.context:
         system_prompt += "\n\n" + request.context
 
-    try:
-        kwargs: Dict[str, Any] = dict(
-            model=model_name,
-            messages=[{"role": "system", "content": system_prompt}]
-            + [{"role": m.role, "content": m.content} for m in request.messages],
-            temperature=0.4,
-        )
-        if request.tools:
-            kwargs["tools"] = request.tools
-            kwargs["tool_choice"] = "auto"
+    last_error: Exception | None = None
+    for index, (ai, model_name) in enumerate(providers):
+        try:
+            kwargs: Dict[str, Any] = dict(
+                model=model_name,
+                messages=[{"role": "system", "content": system_prompt}]
+                + [{"role": m.role, "content": m.content} for m in request.messages],
+                temperature=0.4,
+            )
+            if request.tools:
+                kwargs["tools"] = request.tools
+                kwargs["tool_choice"] = "auto"
 
-        response = await ai.chat.completions.create(**kwargs)
-        message = response.choices[0].message
+            response = await ai.chat.completions.create(**kwargs)
+            message = response.choices[0].message
 
-        tool_calls = None
-        if getattr(message, "tool_calls", None):
-            tool_calls = [
-                {
-                    "id": tc.id,
-                    "name": tc.function.name,
-                    "arguments": tc.function.arguments,
-                }
-                for tc in message.tool_calls
-            ]
+            tool_calls = None
+            if getattr(message, "tool_calls", None):
+                tool_calls = [
+                    {
+                        "id": tc.id,
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    }
+                    for tc in message.tool_calls
+                ]
 
-        return ChatResponse(reply=message.content or "", tool_calls=tool_calls)
-    except Exception as error:  # noqa: BLE001
-        raise as_http_exception(error)
+            return ChatResponse(reply=message.content or "", tool_calls=tool_calls)
+        except Exception as error:  # noqa: BLE001
+            last_error = error
+            has_another = index + 1 < len(providers)
+            if has_another and is_retryable_provider_error(error):
+                logger.warning(
+                    "Chat provider %s failed (%s); falling back to the next provider.",
+                    model_name,
+                    type(error).__name__,
+                )
+                continue
+            raise as_http_exception(error)
+
+    raise as_http_exception(last_error or RuntimeError("no chat provider available"))
 
 
 @app.post("/suggest-tags")
