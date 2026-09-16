@@ -258,6 +258,45 @@ describe('ChatService', () => {
       expect(result).toContain('Call mom');
     });
 
+    it('refuses a one-off reminder in the past instead of saving it', async () => {
+      // From WhatsApp, "remind me in 4 minutes" produced one reminder for 00:04
+      // that day - already past, so it fired on save - and a second, correct
+      // one when the model retried. The past one must never be stored.
+      reply([call('create_reminder', { title: 'Take medicines', scheduled_at: '2020-01-01T00:04:00.000Z' })]);
+
+      const result = await service.reply('user1', [
+        { role: 'user', content: 'remind me in 4 minutes to take medicines' },
+      ]);
+
+      expect(remindersService.create).not.toHaveBeenCalled();
+      expect(result).toMatch(/already in the past/);
+      expect(result).toMatch(/It is now/);
+    });
+
+    it('still allows a recurring reminder whose first occurrence has passed', async () => {
+      reply([call('create_reminder', { title: 'Vitamins', scheduled_at: '2020-01-01T08:00:00.000Z', recurrence: 'DAILY' })]);
+      remindersService.create.mockResolvedValue({ title: 'Vitamins', scheduledAt: '2020-01-01T08:00:00.000Z' });
+
+      await service.reply('user1', [{ role: 'user', content: 'remind me daily at 8am' }]);
+
+      expect(remindersService.create).toHaveBeenCalled();
+    });
+
+    it("states the reminder time in the user's own timezone, not the server's", async () => {
+      // Railway runs on UTC. 10:00 UTC is 3:00 pm in Karachi.
+      prisma.user.findUnique.mockResolvedValue({ timezone: 'Asia/Karachi' });
+      reply([call('create_reminder', { title: 'Call the accountant', scheduled_at: '2030-05-05T10:00:00.000Z' })]);
+      remindersService.create.mockResolvedValue({
+        title: 'Call the accountant',
+        scheduledAt: '2030-05-05T10:00:00.000Z',
+      });
+
+      const result = await service.reply('user1', [{ role: 'user', content: 'remind me at 3pm' }]);
+
+      expect(result).toMatch(/3:00 pm/i);
+      expect(result).not.toMatch(/10:00/);
+    });
+
     it('lists upcoming reminders', async () => {
       reply([call('list_reminders', {})]);
       remindersService.findAll.mockResolvedValue([
@@ -733,7 +772,7 @@ describe('ChatService', () => {
   describe('safety', () => {
     it('turns a plan-limit rejection into a friendly message instead of throwing', async () => {
       reply([
-        call('create_reminder', { title: 'Call mom', scheduled_at: '2026-09-01T09:00:00.000Z' }),
+        call('create_reminder', { title: 'Call mom', scheduled_at: '2030-09-01T09:00:00.000Z' }),
       ]);
       remindersService.create.mockRejectedValue(
         new Error("You've reached the free-tier limit of 5 reminders."),
@@ -748,13 +787,13 @@ describe('ChatService', () => {
       reply([
         call('create_reminder', {
           title: 'Call mom',
-          scheduled_at: '2026-09-01T09:00:00.000Z',
+          scheduled_at: '2030-09-01T09:00:00.000Z',
           userId: 'someone-elses-id',
         }),
       ]);
       remindersService.create.mockResolvedValue({
         title: 'Call mom',
-        scheduledAt: '2026-09-01T09:00:00.000Z',
+        scheduledAt: '2030-09-01T09:00:00.000Z',
       });
       await service.reply('victim-user', [{ role: 'user', content: 'remind me to call mom' }]);
       expect(remindersService.create).toHaveBeenCalledWith('victim-user', expect.anything());

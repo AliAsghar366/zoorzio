@@ -235,7 +235,7 @@ export class ChatService {
     executionId: string,
     prompter?: ButtonPrompter,
   ): Promise<string> {
-    const question = describeAction(toolName, args);
+    const question = describeAction(toolName, args, await this.userTimezone(userId));
 
     if (prompter) {
       try {
@@ -308,9 +308,41 @@ export class ChatService {
 
   // ---- Reminders ----
 
+  /**
+   * Replies were formatting dates with the server's own timezone. Railway runs
+   * on UTC, so someone in Karachi was told their 3pm reminder was at 10am. Every
+   * date the assistant says out loud goes through here instead.
+   */
+  private readonly tzCache = new Map<string, { tz: string; at: number }>();
+
+  private async userTimezone(userId: string): Promise<string> {
+    const hit = this.tzCache.get(userId);
+    if (hit && Date.now() - hit.at < 5 * 60 * 1000) return hit.tz;
+    const user = await this.prisma.user
+      .findUnique({ where: { id: userId }, select: { timezone: true } })
+      .catch(() => null);
+    const tz = isValidTimezone(user?.timezone) ? (user!.timezone as string) : 'UTC';
+    this.tzCache.set(userId, { tz, at: Date.now() });
+    return tz;
+  }
+
   private async toolCreateReminder(userId: string, args: Record<string, any>): Promise<string> {
     if (!args.title || !args.scheduled_at || Number.isNaN(Date.parse(args.scheduled_at))) {
       return 'I need a clear title and time to set that reminder.';
+    }
+    const tz = await this.userTimezone(userId);
+    // A one-off reminder in the past fires the instant it is saved, and the
+    // model will then usually try again with the right time - leaving the user
+    // with two reminders, one already "triggered". Seen from WhatsApp: "remind
+    // me in 4 minutes" produced one for 00:04 that day and one for the correct
+    // time. Refuse it, and give the model the real clock to correct against.
+    const when = new Date(args.scheduled_at);
+    if (!args.recurrence && when.getTime() < Date.now() - 60 * 1000) {
+      return (
+        `Not created: ${fmtDateTime(when, tz)} is already in the past. ` +
+        `It is now ${fmtDateTime(new Date(), tz)} (${tz}). ` +
+        `Work out the intended future time and call create_reminder again.`
+      );
     }
     const reminder = await this.remindersService.create(userId, {
       title: args.title,
@@ -318,16 +350,17 @@ export class ChatService {
       message: args.message,
       recurrence: args.recurrence ? { freq: args.recurrence } : undefined,
     } as any);
-    return `Done — I'll remind you to "${reminder.title}" on ${new Date(reminder.scheduledAt).toLocaleString()}.`;
+    return `Done — I'll remind you to "${reminder.title}" on ${fmtDateTime(reminder.scheduledAt, tz)}.`;
   }
 
   private async toolListReminders(userId: string): Promise<string> {
+    const tz = await this.userTimezone(userId);
     const reminders = await this.remindersService.findAll(userId, true);
     if (reminders.length === 0) return "You don't have any upcoming reminders.";
     return (
       `You have ${reminders.length} upcoming reminder(s):\n` +
       reminders
-        .map((r: any) => `• ${r.title} — ${new Date(r.scheduledAt).toLocaleString()}`)
+        .map((r: any) => `• ${r.title} — ${fmtDateTime(r.scheduledAt, tz)}`)
         .join('\n')
     );
   }
@@ -350,6 +383,7 @@ export class ChatService {
   }
 
   private async toolSnoozeReminder(userId: string, args: Record<string, any>): Promise<string> {
+    const tz = await this.userTimezone(userId);
     const match = await this.findByTitle(
       await this.remindersService.findAll(userId, true),
       args.title,
@@ -359,12 +393,13 @@ export class ChatService {
     const minutes = typeof args.minutes === 'number' && args.minutes > 0 ? args.minutes : 60;
     const reminder = await this.remindersService.snooze(userId, match.id, minutes * 60 * 1000);
 
-    return `👍 I'll remind you about "${reminder.title}" again at ${new Date(reminder.scheduledAt).toLocaleTimeString()}.`;
+    return `👍 I'll remind you about "${reminder.title}" again at ${fmtTime(reminder.scheduledAt, tz)}.`;
   }
 
   // ---- Tasks / Boards ----
 
   private async toolCreateTask(userId: string, args: Record<string, any>): Promise<string> {
+    const tz = await this.userTimezone(userId);
     if (!args.title) return 'I need a title to create that task.';
     let boardId: string | undefined;
     if (args.board_name) {
@@ -377,10 +412,11 @@ export class ChatService {
       priority: args.priority,
       boardId,
     } as any);
-    return `Done — added "${task.title}" to your tasks${args.due_date ? ` (due ${new Date(args.due_date).toLocaleDateString()})` : ''}.`;
+    return `Done — added "${task.title}" to your tasks${args.due_date ? ` (due ${fmtDate(args.due_date, tz)})` : ''}.`;
   }
 
   private async toolListTasks(userId: string, args: Record<string, any>): Promise<string> {
+    const tz = await this.userTimezone(userId);
     const tasks = await this.tasksService.findAll(userId, args.status);
     if (tasks.length === 0) return "You don't have any tasks matching that.";
     return (
@@ -388,7 +424,7 @@ export class ChatService {
       tasks
         .map(
           (t: any) =>
-            `• ${t.title} [${t.priority}]${t.dueDate ? ` — due ${new Date(t.dueDate).toLocaleDateString()}` : ''}`,
+            `• ${t.title} [${t.priority}]${t.dueDate ? ` — due ${fmtDate(t.dueDate, tz)}` : ''}`,
         )
         .join('\n')
     );
@@ -499,6 +535,7 @@ export class ChatService {
   // ---- Calendar ----
 
   private async toolListCalendarEvents(userId: string, args: Record<string, any>): Promise<string> {
+    const tz = await this.userTimezone(userId);
     const start = args.start_date ? new Date(args.start_date) : new Date();
     const end = args.end_date
       ? new Date(args.end_date)
@@ -507,7 +544,7 @@ export class ChatService {
     if (events.length === 0) return "You don't have anything on your calendar in that window.";
     return (
       `You have ${events.length} event(s):\n` +
-      events.map((e: any) => `• ${e.title} — ${new Date(e.startTime).toLocaleString()}`).join('\n')
+      events.map((e: any) => `• ${e.title} — ${fmtDateTime(e.startTime, tz)}`).join('\n')
     );
   }
 
@@ -515,6 +552,7 @@ export class ChatService {
     userId: string,
     args: Record<string, any>,
   ): Promise<string> {
+    const tz = await this.userTimezone(userId);
     const start = args.start_date ? new Date(args.start_date) : new Date();
     const end = args.end_date
       ? new Date(args.end_date)
@@ -530,7 +568,7 @@ export class ChatService {
     if (matches.length === 0) return `I couldn't find any events matching "${args.query}".`;
     return (
       `Found ${matches.length} event(s) matching "${args.query}":\n` +
-      matches.map((e: any) => `• ${e.title} — ${new Date(e.startTime).toLocaleString()}`).join('\n')
+      matches.map((e: any) => `• ${e.title} — ${fmtDateTime(e.startTime, tz)}`).join('\n')
     );
   }
 
@@ -543,6 +581,7 @@ export class ChatService {
     userId: string,
     args: Record<string, any>,
   ): Promise<string> {
+    const tz = await this.userTimezone(userId);
     if (!args.title || !args.start_time || !args.end_time)
       return 'I need a title, start time, and end time for that event.';
 
@@ -563,7 +602,7 @@ export class ChatService {
 
     const metadata = (event.metadata as Record<string, any>) || {};
     const lines = [
-      `✅ Done — "${event.title}" is on your calendar for ${new Date(event.startTime).toLocaleString()}.`,
+      `✅ Done — "${event.title}" is on your calendar for ${fmtDateTime(event.startTime, tz)}.`,
     ];
     if (metadata.meetLink) lines.push(`Google Meet: ${metadata.meetLink}`);
     // Only claim an invitation went out if the provider says it did. `attendees`
@@ -588,6 +627,7 @@ export class ChatService {
     userId: string,
     args: Record<string, any>,
   ): Promise<string> {
+    const tz = await this.userTimezone(userId);
     const events = await this.calendarService.getEvents(userId);
     const match = events.find((e: any) =>
       e.title.toLowerCase().includes((args.title || '').toLowerCase()),
@@ -603,7 +643,7 @@ export class ChatService {
       attendees: args.attendee_emails ? normalizeEmails(args.attendee_emails) : undefined,
     });
 
-    return `✅ Updated "${updated.title}" — now ${new Date(updated.startTime).toLocaleString()}.`;
+    return `✅ Updated "${updated.title}" — now ${fmtDateTime(updated.startTime, tz)}.`;
   }
 
   private async toolDeleteCalendarEvent(
@@ -1025,14 +1065,14 @@ function normalizeEmails(value: unknown): string[] {
 }
 
 /** Plain-language description of a pending action, used when asking the user to approve it. */
-function describeAction(toolName: string, args: Record<string, any>): string {
+function describeAction(toolName: string, args: Record<string, any>, tz = 'UTC'): string {
   switch (toolName) {
     case 'delete_calendar_event':
       return `Cancel the event "${args.title}"? Attendees will be notified.`;
     case 'send_gmail_message':
       return `Send this email to ${args.to}?\n\nSubject: ${args.subject}\n\n${String(args.body ?? '').slice(0, 500)}`;
     case 'create_calendar_event':
-      return `Schedule "${args.title}" for ${new Date(args.start_time).toLocaleString()}?`;
+      return `Schedule "${args.title}" for ${fmtDateTime(args.start_time, tz)}?`;
     case 'update_calendar_event':
       return `Change the event "${args.title}"?`;
     case 'slack_send_message':
@@ -1042,4 +1082,47 @@ function describeAction(toolName: string, args: Record<string, any>): string {
     default:
       return `Go ahead with ${toolName.replace(/_/g, ' ')}?`;
   }
+}
+
+function isValidTimezone(tz: unknown): boolean {
+  if (typeof tz !== 'string' || !tz) return false;
+  try {
+    new Intl.DateTimeFormat('en-GB', { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** e.g. "Wed 16 Sep 2026, 3:39 pm" in the user's timezone. */
+function fmtDateTime(value: string | Date, tz: string): string {
+  return new Date(value).toLocaleString('en-GB', {
+    timeZone: tz,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function fmtDate(value: string | Date, tz: string): string {
+  return new Date(value).toLocaleDateString('en-GB', {
+    timeZone: tz,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function fmtTime(value: string | Date, tz: string): string {
+  return new Date(value).toLocaleTimeString('en-GB', {
+    timeZone: tz,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 }
