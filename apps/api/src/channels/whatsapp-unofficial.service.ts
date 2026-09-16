@@ -56,6 +56,13 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   private connecting = false;
   /** When a message was last received, for telling a quiet bot from a dead one. */
   private lastInboundAt: Date | null = null;
+  /**
+   * Sender identity (digits) -> the exact JID to reply to. WhatsApp now hides
+   * many senders behind a private linked id ("123456789@lid"), and a reply
+   * rebuilt as "<digits>@s.whatsapp.net" goes to an address that does not
+   * exist - Baileys reports success and the message is silently dropped.
+   */
+  private readonly replyJids = new Map<string, string>();
   /** Why the last outbound reply failed, if it did. */
   private lastSendError: string | null = null;
   private loggingOut = false;
@@ -268,7 +275,7 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     to: string,
     message: string,
   ): Promise<{ success: boolean; messageId: string }> {
-    const jid = jidFor(to);
+    const jid = await this.resolveJid(to);
     const sent = await this.requireSocket().sendMessage(jid, { text: message });
 
     await this.recordOutbound(to, sent?.key?.id ?? `local_${Date.now()}`, message);
@@ -292,7 +299,7 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     const numbered = buttons.map((button, index) => `${index + 1}. ${button.title}`).join('\n');
     const text = `${body}\n\n${numbered}\n\nReply with a number.`;
 
-    const jid = jidFor(to);
+    const jid = await this.resolveJid(to);
     const sent = await this.requireSocket().sendMessage(jid, { text });
 
     await this.recordOutbound(to, sent?.key?.id ?? `local_${Date.now()}`, text, {
@@ -374,8 +381,19 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     // Only 1:1 chats - group and broadcast/status traffic isn't a conversation with one accountable user.
     if (remoteJid.endsWith('@g.us') || remoteJid === 'status@broadcast') return;
 
-    const from = digitsOf(remoteJid);
+    // remoteJid may be a phone JID or a private @lid. Reply to it exactly as
+    // received, and identify the sender by their real number when WhatsApp
+    // supplies it (key.senderPn), falling back to the private id.
+    const phone =
+      digitsOf(message.key?.senderPn) ??
+      (remoteJid.endsWith('@s.whatsapp.net') ? digitsOf(remoteJid) : null);
+    const lid = remoteJid.endsWith('@lid')
+      ? digitsOf(remoteJid)
+      : digitsOf(message.key?.senderLid);
+    const from = phone ?? lid;
     if (!from) return;
+    const identities = [phone, lid].filter((v): v is string => !!v);
+    for (const id of identities) this.replyJids.set(id, remoteJid);
 
     const text: string =
       message.message?.conversation ?? message.message?.extendedTextMessage?.text ?? '';
@@ -383,13 +401,19 @@ export class WhatsAppUnofficialService implements OnModuleInit {
 
     const linkMatch = text.trim() ? LINK_CODE_PATTERN.exec(text.trim()) : null;
     if (linkMatch) {
-      await this.handleLinkCode(from, linkMatch[1]);
+      await this.handleLinkCode(from, linkMatch[1], { replyJid: remoteJid, phone, lid });
       return;
     }
 
+    // A number may have been linked under its phone digits or its private id.
     const channel = await this.prisma.channel.findFirst({
-      where: { type: 'WHATSAPP', externalId: from },
+      where: { type: 'WHATSAPP', externalId: { in: identities } },
     });
+    if (channel) {
+      // Keep the reply address current so proactive sends (reminders) arrive.
+      this.replyJids.set(channel.externalId, remoteJid);
+      await this.rememberReplyJid(channel.id, channel.metadata, remoteJid, phone, lid);
+    }
     if (!channel) {
       await this.trySend(
         from,
@@ -464,8 +488,20 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   }
 
   /** Mirrors WhatsAppService's LINK <code> flow exactly - same regex, same ChannelLinkingService call. */
-  private async handleLinkCode(from: string, code: string): Promise<void> {
+  private async handleLinkCode(
+    from: string,
+    code: string,
+    addr?: { replyJid: string; phone: string | null; lid: string | null },
+  ): Promise<void> {
     const userId = await this.channelLinking.consumeWhatsAppLinkCode(code, from);
+    if (userId && addr) {
+      const linked = await this.prisma.channel.findFirst({
+        where: { type: 'WHATSAPP', externalId: from },
+      });
+      if (linked) {
+        await this.rememberReplyJid(linked.id, linked.metadata, addr.replyJid, addr.phone, addr.lid);
+      }
+    }
     if (!userId) {
       await this.trySend(
         from,
@@ -560,6 +596,54 @@ export class WhatsAppUnofficialService implements OnModuleInit {
     const result = await this.sendMessage('', to, message);
     this.lastSendError = null;
     return result;
+  }
+
+  /**
+   * The JID to send to for a sender identity. In order: a full JID passed
+   * straight through, the address this sender last wrote from, the address
+   * saved on their linked channel (so reminders survive a restart), and only
+   * then the phone-number form.
+   */
+  private async resolveJid(to: string): Promise<string> {
+    if (to.includes('@')) return to;
+    const digits = to.replace(/\D/g, '');
+    const remembered = this.replyJids.get(digits);
+    if (remembered) return remembered;
+    const channel = await this.prisma.channel.findFirst({
+      where: { type: 'WHATSAPP', externalId: digits },
+    });
+    const saved = (channel?.metadata as Record<string, unknown> | null)?.replyJid;
+    if (typeof saved === 'string' && saved.includes('@')) {
+      this.replyJids.set(digits, saved);
+      return saved;
+    }
+    return jidFor(digits);
+  }
+
+  private async rememberReplyJid(
+    channelId: string,
+    metadata: unknown,
+    replyJid: string,
+    phone: string | null,
+    lid: string | null,
+  ): Promise<void> {
+    const current = (metadata as Record<string, unknown> | null) ?? {};
+    if (current.replyJid === replyJid && (!phone || current.phone === phone)) return;
+    try {
+      await this.prisma.channel.update({
+        where: { id: channelId },
+        data: {
+          metadata: {
+            ...current,
+            replyJid,
+            ...(phone ? { phone } : {}),
+            ...(lid ? { lid } : {}),
+          } as Prisma.InputJsonValue,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(`Could not store the WhatsApp reply address for channel ${channelId}`);
+    }
   }
 
   private async trySend(to: string, message: string): Promise<void> {
