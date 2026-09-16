@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@anchor/database';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -50,6 +50,20 @@ export class WhatsAppUnofficialController {
     // socket from the credentials already stored - no QR needed.
     await this.service.connect(true);
     return this.service.getStatus();
+  }
+
+  @Post('test-message')
+  @ApiOperation({
+    summary: '[Admin] Send a message to a number to check the outbound path works',
+  })
+  @ApiResponse({ status: 201, description: 'Message sent' })
+  async testMessage(@Body() body: { to: string; message?: string }) {
+    // Deliberately not wrapped: a failure here should surface, since the whole
+    // point is to find out why replies are not arriving.
+    return this.service.sendTestMessage(
+      body.to,
+      body.message || 'Test message from Zoorzio - outbound is working.',
+    );
   }
 
   @Post('logout')

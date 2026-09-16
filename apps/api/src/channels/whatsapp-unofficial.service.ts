@@ -30,6 +30,8 @@ export interface WhatsAppUnofficialStatusView {
   receiving: boolean;
   /** Last time any message arrived, so a quiet bot can be told from a dead one. */
   lastInboundAt: Date | null;
+  /** Why the last reply failed to send, if it did. */
+  lastSendError: string | null;
 }
 
 /**
@@ -54,6 +56,8 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   private connecting = false;
   /** When a message was last received, for telling a quiet bot from a dead one. */
   private lastInboundAt: Date | null = null;
+  /** Why the last outbound reply failed, if it did. */
+  private lastSendError: string | null = null;
   private loggingOut = false;
   private latestQr: { dataUrl: string; generatedAt: Date } | null = null;
 
@@ -101,6 +105,7 @@ export class WhatsAppUnofficialService implements OnModuleInit {
       socketOpen,
       receiving: socketOpen && session.status === WhatsAppUnofficialStatus.CONNECTED,
       lastInboundAt: this.lastInboundAt,
+      lastSendError: this.lastSendError,
       qrDataUrl: this.latestQr?.dataUrl ?? null,
       qrGeneratedAt: this.latestQr?.generatedAt ?? null,
     };
@@ -522,10 +527,22 @@ export class WhatsAppUnofficialService implements OnModuleInit {
   }
 
   /** Best-effort reply for control-flow messages - never throws, matching the official transport's trySendMessage. */
+  /** Send a message and let the failure through - for checking outbound works. */
+  async sendTestMessage(to: string, message: string) {
+    const result = await this.sendMessage('', to, message);
+    this.lastSendError = null;
+    return result;
+  }
+
   private async trySend(to: string, message: string): Promise<void> {
     try {
       await this.sendMessage('', to, message);
-    } catch (error) {
+      this.lastSendError = null;
+    } catch (error: any) {
+      // Swallowing this only in a log made a broken outbound path invisible:
+      // messages arrive, the bot answers, the answer never leaves, and every
+      // status reads healthy. Keep the reason where it can be seen.
+      this.lastSendError = error?.message ?? String(error);
       this.logger.error('Failed to send a WhatsApp reply', error);
     }
   }
