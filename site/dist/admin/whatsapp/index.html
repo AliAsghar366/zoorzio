@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Link WhatsApp · Zoorzio Admin</title>
+  <link rel="icon" href="/portal/assets/images/zoorzio-icon.png" />
+  <link href="/_ext/fonts.googleapis.com/poppins.css" rel="stylesheet" />
+  <style>
+    :root {
+      --plum: rgba(90, 60, 130, 1);
+      --glass: rgba(255, 255, 255, 0.14);
+      --line: rgba(255, 255, 255, 0.22);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; color: #fff;
+      background: #2a1c3d url('/portal/assets/images/candy-bar-bg.png') center/cover no-repeat fixed;
+      position: relative;
+    }
+    body::before {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(160deg, rgba(42,28,61,0.4), rgba(90,60,130,0.55));
+    }
+    .card {
+      position: relative; width: 100%; max-width: 420px;
+      background: var(--glass); border: 1px solid var(--line); border-radius: 24px;
+      padding: 32px 28px; box-shadow: 0 20px 60px rgba(20,12,35,0.45);
+      backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+      text-align: center;
+    }
+    h1 { font-size: 1.35rem; font-weight: 600; margin-bottom: 4px; }
+    .sub { font-size: 0.85rem; opacity: 0.82; margin-bottom: 22px; font-weight: 300; line-height: 1.5; }
+    label { display: block; text-align: left; font-size: 0.75rem; font-weight: 500; margin: 0 0 6px 4px; opacity: 0.9; }
+    .field {
+      width: 100%; background: rgba(255,255,255,0.12); border: 1px solid var(--line);
+      border-radius: 12px; padding: 12px 14px; color: #fff; font-size: 0.95rem;
+      font-family: inherit; margin-bottom: 14px; outline: none;
+    }
+    .field::placeholder { color: rgba(255,255,255,0.55); }
+    .btn {
+      width: 100%; border: none; border-radius: 12px; padding: 13px;
+      font-family: inherit; font-size: 0.95rem; font-weight: 600; color: #3a2555;
+      background: linear-gradient(135deg, #ffffff, #f3e9ff); cursor: pointer;
+      box-shadow: 0 8px 22px rgba(20,12,35,0.3);
+    }
+    .btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+    .btn--ghost {
+      background: transparent; color: #fff; border: 1px solid var(--line);
+      box-shadow: none; margin-top: 10px; font-weight: 500;
+    }
+    .status {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.8rem; font-weight: 500; padding: 6px 14px; border-radius: 999px;
+      background: rgba(255,255,255,0.12); border: 1px solid var(--line); margin-bottom: 18px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #bbb; }
+    .dot--connecting { background: #f5c26b; animation: pulse 1.1s ease-in-out infinite; }
+    .dot--connected { background: #6bd98f; }
+    .dot--error { background: #f08a8a; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .qr-wrap {
+      background: #fff; border-radius: 18px; padding: 14px; margin: 6px auto 14px;
+      width: 272px; height: 272px; display: flex; align-items: center; justify-content: center;
+    }
+    .qr-wrap img { width: 100%; height: 100%; object-fit: contain; }
+    .qr-wrap .placeholder { color: #6b5a80; font-size: 0.8rem; text-align: center; padding: 0 18px; line-height: 1.5; }
+    .steps { text-align: left; font-size: 0.8rem; line-height: 1.65; opacity: 0.9; margin: 4px 0 16px; padding-left: 18px; }
+    .steps li { margin-bottom: 3px; }
+    .msg { font-size: 0.8rem; line-height: 1.5; margin-top: 12px; padding: 10px 12px; border-radius: 10px; display: none; }
+    .msg--error { display: block; background: rgba(150,40,60,0.35); border: 1px solid rgba(240,138,138,0.4); }
+    .msg--ok { display: block; background: rgba(40,110,70,0.32); border: 1px solid rgba(107,217,143,0.4); }
+    .note { font-size: 0.68rem; line-height: 1.5; opacity: 0.6; margin-top: 16px; font-weight: 300; }
+    .hidden { display: none !important; }
+    .back { position: absolute; top: 20px; left: 22px; color: #fff; text-decoration: none; font-size: 0.82rem; opacity: 0.85; z-index: 2; }
+  </style>
+</head>
+<body>
+  <a class="back" href="/portal/">← Portal</a>
+
+  <!-- ZOORZIO_API_URL is substituted at deploy time by site/tools/inject-env.js -->
+  <script>window.ZOORZIO_API_URL = 'https://REPLACE-WITH-RAILWAY-API-URL.up.railway.app/api';</script>
+  <script src="/portal/zoorzio-api.js"></script>
+
+  <main class="card">
+    <h1>Link WhatsApp</h1>
+    <p class="sub">Connects the Zoorzio number that your subscribers message.<br />Admin sign-in required.</p>
+
+    <!-- Step 1: admin sign-in -->
+    <section id="authStep">
+      <label for="email">Admin email</label>
+      <input class="field" id="email" type="email" placeholder="admin@example.com" autocomplete="username" />
+      <label for="pw">Password</label>
+      <input class="field" id="pw" type="password" placeholder="••••••••" autocomplete="current-password" />
+      <button class="btn" id="signInBtn">Sign in</button>
+    </section>
+
+    <!-- Step 2: pairing -->
+    <section id="pairStep" class="hidden">
+      <div class="status">
+        <span class="dot" id="dot"></span>
+        <span id="statusText">Checking…</span>
+      </div>
+
+      <div class="qr-wrap" id="qrWrap">
+        <p class="placeholder" id="qrPlaceholder">Press “Start pairing” to generate a QR code.</p>
+        <img id="qrImg" alt="WhatsApp pairing QR code" class="hidden" />
+      </div>
+
+      <ol class="steps">
+        <li>On the phone holding the Zoorzio number, open WhatsApp.</li>
+        <li>Go to <strong>Settings → Linked devices</strong>.</li>
+        <li>Tap <strong>Link a device</strong> and scan the code above.</li>
+      </ol>
+
+      <button class="btn" id="startBtn">Start pairing</button>
+      <button class="btn btn--ghost hidden" id="unlinkBtn">Unlink this device</button>
+      <button class="btn btn--ghost" id="signOutBtn">Sign out</button>
+    </section>
+
+    <p class="msg" id="msg"></p>
+    <p class="note">
+      The QR rotates every few seconds while pairing — this page refreshes it automatically,
+      so scan whichever code is on screen. The session is stored encrypted in the database,
+      so this only needs doing once, not on every deploy.
+    </p>
+  </main>
+
+  <script>
+    (function () {
+      var API = window.ZoorzioAPI.configure(window.ZOORZIO_API_URL || '');
+
+      var authStep = document.getElementById('authStep');
+      var pairStep = document.getElementById('pairStep');
+      var msg = document.getElementById('msg');
+      var dot = document.getElementById('dot');
+      var statusText = document.getElementById('statusText');
+      var qrImg = document.getElementById('qrImg');
+      var qrPlaceholder = document.getElementById('qrPlaceholder');
+      var startBtn = document.getElementById('startBtn');
+      var unlinkBtn = document.getElementById('unlinkBtn');
+      var pollTimer = null;
+
+      function say(text, kind) {
+        msg.textContent = text || '';
+        msg.className = 'msg' + (text ? ' msg--' + (kind || 'ok') : '');
+      }
+
+      function showPairing() {
+        authStep.classList.add('hidden');
+        pairStep.classList.remove('hidden');
+        poll();
+        if (!pollTimer) pollTimer = window.setInterval(poll, 2000);
+      }
+
+      function render(s) {
+        var status = (s && s.status) || 'UNKNOWN';
+        dot.className = 'dot';
+        if (status === 'CONNECTING') dot.classList.add('dot--connecting');
+        else if (status === 'CONNECTED') dot.classList.add('dot--connected');
+        else if (s && s.lastError) dot.classList.add('dot--error');
+
+        if (status === 'CONNECTED') {
+          statusText.textContent = 'Connected' + (s.connectedNumber ? ' · +' + s.connectedNumber : '');
+          startBtn.classList.add('hidden');
+          unlinkBtn.classList.remove('hidden');
+        } else {
+          statusText.textContent = status === 'CONNECTING' ? 'Waiting for the scan…' : 'Not linked';
+          startBtn.classList.remove('hidden');
+          startBtn.textContent = status === 'CONNECTING' ? 'Restart pairing' : 'Start pairing';
+          unlinkBtn.classList.add('hidden');
+        }
+
+        if (s && s.qrDataUrl) {
+          qrImg.src = s.qrDataUrl;
+          qrImg.classList.remove('hidden');
+          qrPlaceholder.classList.add('hidden');
+        } else if (status !== 'CONNECTING') {
+          qrImg.classList.add('hidden');
+          qrPlaceholder.classList.remove('hidden');
+          qrPlaceholder.textContent = status === 'CONNECTED'
+            ? 'Linked. Nothing to scan.'
+            : 'Press “Start pairing” to generate a QR code.';
+        }
+
+        if (s && s.lastError) say(s.lastError, 'error');
+        else if (status === 'CONNECTED') say('WhatsApp is linked — subscribers can message this number now.', 'ok');
+      }
+
+      function poll() {
+        API.request('/admin/whatsapp-unofficial')
+          .then(render)
+          .catch(function (err) {
+            if (err.status === 401) {
+              window.clearInterval(pollTimer); pollTimer = null;
+              API.clearSession();
+              pairStep.classList.add('hidden');
+              authStep.classList.remove('hidden');
+              say('Session expired — sign in again.', 'error');
+              return;
+            }
+            if (err.status === 403) {
+              say('That account is not an admin, so it cannot link WhatsApp.', 'error');
+              window.clearInterval(pollTimer); pollTimer = null;
+              return;
+            }
+            say(err.message, 'error');
+          });
+      }
+
+      document.getElementById('signInBtn').addEventListener('click', function () {
+        var btn = this;
+        say('');
+        if (!API.isConfigured()) {
+          say('This deployment has no API URL configured yet.', 'error');
+          return;
+        }
+        btn.disabled = true; btn.textContent = 'Signing in…';
+        API.login(document.getElementById('email').value.trim(), document.getElementById('pw').value)
+          .then(showPairing)
+          .catch(function (err) { say(err.message, 'error'); })
+          .finally(function () { btn.disabled = false; btn.textContent = 'Sign in'; });
+      });
+
+      startBtn.addEventListener('click', function () {
+        var btn = this;
+        say('');
+        btn.disabled = true; btn.textContent = 'Starting…';
+        API.request('/admin/whatsapp-unofficial/connect', { method: 'POST', body: {} })
+          .then(render)
+          .catch(function (err) { say(err.message, 'error'); })
+          .finally(function () { btn.disabled = false; poll(); });
+      });
+
+      unlinkBtn.addEventListener('click', function () {
+        if (!window.confirm('Unlink this device? Subscribers will not be able to message the bot until it is linked again.')) return;
+        say('');
+        API.request('/admin/whatsapp-unofficial/logout', { method: 'POST', body: {} })
+          .then(function () { say('Unlinked.', 'ok'); poll(); })
+          .catch(function (err) { say(err.message, 'error'); });
+      });
+
+      document.getElementById('signOutBtn').addEventListener('click', function () {
+        if (pollTimer) { window.clearInterval(pollTimer); pollTimer = null; }
+        API.clearSession();
+        pairStep.classList.add('hidden');
+        authStep.classList.remove('hidden');
+        say('');
+      });
+
+      // Already signed in from another tab? Go straight to pairing.
+      if (API.getToken()) showPairing();
+    })();
+  </script>
+</body>
+</html>
